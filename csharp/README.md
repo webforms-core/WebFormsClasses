@@ -93,9 +93,9 @@ As you can see, the WebFormsJS script has been added in the header section of th
 
 The latest version of the WebFormsJS script is available through the link below.
 
-## How to work with WebForms Core in C# Mediator
+## How to work with WebForms Core in C# WebAssembly
 
-WebForms Core can be used with C# WebAssembly through the .NET WebCIL Container. In this model, C# methods are compiled into WebAssembly and can be called from WebForms Core through the C# Mediator execution layer.
+WebForms Core can be used with C# WebAssembly through the .NET WebCIL Container or AOT mode. In this model, C# methods are compiled into WebAssembly and can be called from WebForms Core through the C# execution layer.
 
 The WebForms Core `WebForms` class can also be used inside the C# WebAssembly module to generate WebForms Core responses. These responses are then executed by the WebFormsJS Executor in the browser.
 
@@ -142,18 +142,18 @@ public class Program
 }
 ```
 
-The methods that should be called from the host application must be publicly accessible from the WebCIL module.
+The methods that should be called from the host application must be publicly accessible from the WebCIL/AOT module.
 
-After publishing the .NET WebCIL project, the generated WebAssembly files and runtime files can be used by WebForms Core.
+After publishing the .NET WebCIL/AOT project, the generated WebAssembly files and runtime files can be used by WebForms Core.
 
-## Calling C# WebAssembly from CodeBehind
+### Calling C# WebAssembly from CodeBehind
 
-The following CodeBehind controller uses the C# Mediator execution model to call methods from the .NET WebCIL Container.
+The following CodeBehind controller uses the C# execution model to call methods from the .NET WebCIL/AOT Container.
 
 ```csharp
 using CodeBehind;
 
-public partial class WasmCsharpMediatorController : CodeBehindController
+public partial class WasmCsharpController : CodeBehindController
 {
     public void PageLoad(HttpContext context)
     {
@@ -161,23 +161,23 @@ public partial class WasmCsharpMediatorController : CodeBehindController
         //string WasmPath = "/web-assembly/csharp-publish/_framework/NativeWasmModule.wasm";
         WebForms form = new WebForms();
 
-        form.AddText("<b>", Fetch.WasmMethod(WasmLanguage.CSharpMediator, WasmPath, "MyClass.Add", [10000, 3]));
+        form.AddText("<b>", Fetch.WasmMethod(WasmLanguage.CSharp, WasmPath, "MyClass.Add", [10000, 3]));
 
-        form.SetWasmEvent("WasmEvent", HtmlEvent.OnClick, WasmLanguage.CSharpMediator, WasmPath, "MyClass.SetData", ["h3Tag", "Text From Wasm", "lightgreen", "30px"]);
-        form.SetWasmEvent("WasmEventWithOutput", HtmlEvent.OnClick, WasmLanguage.CSharpMediator, WasmPath, "MyClass.GetHtml", [], "WasmHtmlOutput");
+        form.SetWasmEvent("WasmEvent", HtmlEvent.OnClick, WasmLanguage.CSharp, WasmPath, "MyClass.SetData", ["h3Tag", "Text From Wasm", "lightgreen", "30px"]);
+        form.SetWasmEvent("WasmEventWithOutput", HtmlEvent.OnClick, WasmLanguage.CSharp, WasmPath, "MyClass.GetHtml", [], "WasmHtmlOutput");
 
         Write(form.ExportToHtmlComment());
     }
 }
 ```
 
-The `Fetch.WasmMethod` method calls an exported C# method through the C# Mediator execution layer and returns its result.
+The `Fetch.WasmMethod` method calls an exported C# method through the C# execution layer and returns its result.
 
 In this example:
 
 ```csharp
 Fetch.WasmMethod(
-    WasmLanguage.CSharpMediator,
+    WasmLanguage.CSharp,
     WasmPath,
     "MyClass.Add",
     [10000, 3]
@@ -194,7 +194,7 @@ For example:
 form.SetWasmEvent(
     "WasmEvent",
     HtmlEvent.OnClick,
-    WasmLanguage.CSharpMediator,
+    WasmLanguage.CSharp,
     WasmPath,
     "MyClass.SetData",
     ["h3Tag", "Text From Wasm", "lightgreen", "30px"]
@@ -207,19 +207,19 @@ The method creates a `WebForms` instance and generates WebForms Core commands th
 
 The second `SetWasmEvent` call executes the `MyClass.GetHtml` method and places its returned HTML into the `WasmHtmlOutput` element.
 
-## View
+### View
 
 The CodeBehind controller can be used with the following view:
 
 ```aspx
 @page
-@controller WasmCsharpMediatorController
+@controller WasmCsharpController
 @layout "/layout.aspx"
 @{
-  ViewData.Add("title","C# Mediator Wasm");
+  ViewData.Add("title","C# Wasm");
 }
 <h3>.NET WebCIL Container</h3>
-<b>C# Mediator WASM Result: </b>
+<b>C# WASM Result: </b>
 <br>
 <button id="WasmEvent">Wasm Event</button>
 <br>
@@ -247,7 +247,7 @@ CodeBehind
     ↓
 WebForms
     ↓
-C# Mediator
+   C#
     ↓
 .NET WebCIL / WebAssembly
     ↓
@@ -262,7 +262,7 @@ This allows C# WebAssembly methods to participate in WebForms Core applications 
 
 The same WebForms Core `WebForms` programming model can therefore be used inside the C# WebAssembly environment.
 
-After learning this example, you can use C# methods inside the .NET WebCIL Container to perform computations, generate WebForms Core commands, and participate in browser events.
+After learning this example, you can use C# methods inside the .NET WebCIL/AOT Container to perform computations, generate WebForms Core commands, and participate in browser events.
 
 The WebFormsJS runtime can be obtained from the official WebForms Core repository:
 
