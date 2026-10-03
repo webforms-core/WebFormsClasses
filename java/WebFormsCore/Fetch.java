@@ -1,5 +1,5 @@
-// WebForms.java 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.java 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 package webformscore;
 
@@ -58,7 +58,7 @@ public class Fetch {
     }
 
     // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-    public static String wasmMethod(String wasmLanguage, String wasmUrl, String methodName, Object[] args, String key) {
+    public static String wasmMethod(String wasmLanguage, String wasmUrl, String methodName, Object[] args) {
         String returnValue = "@wA" + wasmLanguage + RS + wasmUrl + RS + methodName;
         if (args != null) {
             returnValue += (args.length > 0) ? RS + String.join(String.valueOf(US), toStringArray(args)) : "";
@@ -67,7 +67,7 @@ public class Fetch {
     }
 
     public static String wasmMethod(String wasmLanguage, String wasmUrl, String methodName) {
-        return wasmMethod(wasmLanguage, wasmUrl, methodName, null, ".");
+        return wasmMethod(wasmLanguage, wasmUrl, methodName, null);
     }
 
     public static String script(String scriptText) {
@@ -144,7 +144,7 @@ public class Fetch {
         return math(methodName, null);
     }
 
-    // Data
+    // Date
     public static final String DATE_YEAR = "@dy";
     // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
     public static final String DATE_MONTH = "@dm";
@@ -239,6 +239,10 @@ public class Fetch {
     public static String getIsVisible(String inputPlace) {
         return "@$V" + inputPlace;
     }
+	
+	public static String getTagHash(String inputPlace) {
+		return "@$H" + inputPlace;
+	}
 
     // Save
     public static String hasHash(String hash) {
