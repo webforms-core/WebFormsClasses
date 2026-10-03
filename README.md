@@ -62,7 +62,7 @@ public partial class ContactController : CodeBehindController
 {
     public void PageLoad(HttpContext context)
     {
-        if (context.Request.IfForm["button"].Has())
+        if (context.Request.IfForm().ContainsKey("button"))
             Button_Click(context);
     }
 
