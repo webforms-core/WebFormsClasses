@@ -1,5 +1,5 @@
-// WebForms.java 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.java 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 package webformscore;
 
@@ -357,6 +357,10 @@ public class WebForms {
     public void setCheckedIndex(String inputPlace, int index, boolean checked) {
         setCheckedIndex(inputPlace, String.valueOf(index), checked);
     }
+	
+	public void setCustomValidity(String inputPlace, String text) {
+		add("cv" + inputPlace, text.replace("\n", "$[ln];"));
+	}
 
     // Insert
     // Creates the Data only if it does not exist; otherwise, does nothing.
@@ -485,16 +489,16 @@ public class WebForms {
         add("dp" + inputPlace);
     }
 
-    // Tag
+    // Tag Transformation
     public void swapTag(String inputPlace, String outputPlace) {
         add("sp" + inputPlace, outputPlace);
     }
 
-    public void setReflection(String inputPlace, String tag) {
+    public void setReflect(String inputPlace, String tag) {
         add("sR" + inputPlace, tag);
     }
 
-    public void setReflectionByOutputPlace(String inputPlace, String outputPlace) {
+    public void setReflectByOutputPlace(String inputPlace, String outputPlace) {
         add("iR" + inputPlace, outputPlace);
     }
 
@@ -505,6 +509,32 @@ public class WebForms {
     public void setMorphByOutputPlace(String inputPlace, String outputPlace) {
         add("iM" + inputPlace, outputPlace);
     }
+	
+	// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// inputPlace: Only One Tag
+	public void snapshot(String inputPlace, String key, boolean permanent) {
+		add("rS" + inputPlace, ((key == null || key.isEmpty()) ? inputPlace : key) + (permanent ? GS + "1" : ""));
+	}
+
+	public void snapshot(String inputPlace) {
+		snapshot(inputPlace, "", false);
+	}
+
+	public void snapshot(String inputPlace, String key) {
+		snapshot(inputPlace, key, false);
+	}
+	
+	public void rollback(String inputPlace, String key, boolean permanent) {
+		add("rB" + inputPlace, ((key == null || key.isEmpty()) ? inputPlace : key) + (permanent ? GS + "1" : ""));
+	}
+
+	public void rollback(String inputPlace) {
+		rollback(inputPlace, "", false);
+	}
+
+	public void rollback(String inputPlace, String key) {
+		rollback(inputPlace, key, false);
+	}
 
     // Browser
     public void changeUrl(String url) {
@@ -1241,6 +1271,18 @@ public class WebForms {
     public void createDebugger() {
         createDebugger(false);
     }
+	
+	public void tryBranch() {
+		add("tr");
+	}
+
+	public void catchBranch() {
+		add("ca");
+	}
+
+	public void comment(String text) {
+		add("//", text);
+	}
 
     // Service Worker
     // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -1365,6 +1407,14 @@ public class WebForms {
     public void deleteAllState() {
         add("DS", "*");
     }
+	
+	public void lockQueue(String millisecond) {
+		add("lq", millisecond);
+	}
+
+	public void lockQueue(int millisecond) {
+		lockQueue(String.valueOf(millisecond));
+	}
 
     // Cookie
     public void setCookie(String key, String value, String seconds, String path) {
@@ -1584,6 +1634,29 @@ public class WebForms {
     public void replaceSaveValue(String cacheKey, String searchValue, String value) {
         add("SR", cacheKey + GS + value.replace("\n", "$[ln];") + GS + searchValue.replace("\n", "$[ln];"));
     }
+	
+	// Is Regex Replace
+	public void setFormatSaveValue(String cacheKey, String regex, String replacement) {
+		add("SF", cacheKey + GS + regex + GS + replacement.replace("\n", "$[ln];"));
+	}
+
+	// Operator: +, -, *, /, %, //, **
+	public void setArithmeticSaveValue(String cacheKey, String operator, String value) {
+		add("SM", cacheKey + GS + operator + GS + value);
+	}
+
+	public void setArithmeticSaveValue(String cacheKey, String operator, int value) {
+		setArithmeticSaveValue(cacheKey, operator, String.valueOf(value));
+	}
+
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public void setTextOperationSaveValue(String cacheKey, String operation, String value1, String value2) {
+		add("ST", cacheKey + GS + operation + GS + value1 + GS + value2);
+	}
+
+	public void setTextOperationSaveValue(String cacheKey, String operation, int value1, int value2) {
+		setTextOperationSaveValue(cacheKey, operation, String.valueOf(value1), String.valueOf(value2));
+	}
 
     // Cache
     public void cacheId(String inputPlace, String key) {
@@ -1794,6 +1867,29 @@ public class WebForms {
     public void replaceCacheValue(String cacheKey, String searchValue, String value) {
         add("CR", cacheKey + GS + value.replace("\n", "$[ln];") + GS + searchValue.replace("\n", "$[ln];"));
     }
+	
+	// Is Regex Replace
+	public void setFormatCacheValue(String cacheKey, String regex, String replacement) {
+		add("CF", cacheKey + GS + regex + GS + replacement.replace("\n", "$[ln];"));
+	}
+
+	// Operator: +, -, *, /, %, //, **
+	public void setArithmeticCacheValue(String cacheKey, String operator, String value) {
+		add("CM", cacheKey + GS + operator + GS + value);
+	}
+
+	public void setArithmeticCacheValue(String cacheKey, String operator, int value) {
+		setArithmeticCacheValue(cacheKey, operator, String.valueOf(value));
+	}
+
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public void setTextOperationCacheValue(String cacheKey, String operation, String value1, String value2) {
+		add("CT", cacheKey + GS + operation + GS + value1 + GS + value2);
+	}
+
+	public void setTextOperationCacheValue(String cacheKey, String operation, int value1, int value2) {
+		setTextOperationCacheValue(cacheKey, operation, String.valueOf(value1), String.valueOf(value2));
+	}
 
     // Call
     public void loadUrl(String inputPlace, String url) {
@@ -1980,22 +2076,22 @@ public class WebForms {
     }
 
     // Pre Runner
-    public void assignDelay(int miliSecond, int index) {
+    public void assignDelay(int milliSecond, int index) {
         String currentLine = getLineByIndex(index);
         if (currentLine == null || currentLine.isEmpty()) {
             return;
         }
         String[] parts = currentLine.split("=", 2);
-        String newName = ":" + miliSecond + ")" + parts[0];
+        String newName = ":" + milliSecond + ")" + parts[0];
         String newValue = parts.length > 1 ? parts[1] : "";
         updateLineByIndex(index, newName, newValue);
     }
 
-    public void assignDelay(int miliSecond) {
-        assignDelay(miliSecond, -1);
+    public void assignDelay(int milliSecond) {
+        assignDelay(milliSecond, -1);
     }
 
-    public void assignDelayChange(int miliSecond, int index) {
+    public void assignDelayChange(int milliSecond, int index) {
         String currentLine = getLineByIndex(index);
         if (currentLine == null || currentLine.isEmpty()) {
             return;
@@ -2006,35 +2102,35 @@ public class WebForms {
             int closingBracket = currentName.indexOf(')');
             currentName = currentName.substring(closingBracket + 1);
         }
-        String newName = ":" + miliSecond + ")" + currentName;
+        String newName = ":" + milliSecond + ")" + currentName;
         String newValue = parts.length > 1 ? parts[1] : "";
         updateLineByIndex(index, newName, newValue);
     }
 
-    public void assignDelayChange(int miliSecond) {
-        assignDelayChange(miliSecond, -1);
+    public void assignDelayChange(int milliSecond) {
+        assignDelayChange(milliSecond, -1);
     }
 
-    public void assignInterval(int miliSecond, String id, int index) {
+    public void assignInterval(int milliSecond, String id, int index) {
         String currentLine = getLineByIndex(index);
         if (currentLine == null || currentLine.isEmpty()) {
             return;
         }
         String[] parts = currentLine.split("=", 2);
-        String newName = "(" + miliSecond + ((id != null && !id.isEmpty()) ? "|" + id : "") + ")" + parts[0];
+        String newName = "(" + milliSecond + ((id != null && !id.isEmpty()) ? "|" + id : "") + ")" + parts[0];
         String newValue = parts.length > 1 ? parts[1] : "";
         updateLineByIndex(index, newName, newValue);
     }
 
-    public void assignInterval(int miliSecond, String id) {
-        assignInterval(miliSecond, id, -1);
+    public void assignInterval(int milliSecond, String id) {
+        assignInterval(milliSecond, id, -1);
     }
 
-    public void assignInterval(int miliSecond) {
-        assignInterval(miliSecond, null, -1);
+    public void assignInterval(int milliSecond) {
+        assignInterval(milliSecond, null, -1);
     }
 
-    public void assignIntervalChange(int miliSecond, String id, int index) {
+    public void assignIntervalChange(int milliSecond, String id, int index) {
         String currentLine = getLineByIndex(index);
         if (currentLine == null || currentLine.isEmpty()) {
             return;
@@ -2045,17 +2141,17 @@ public class WebForms {
             int closingBracket = currentName.indexOf(')');
             currentName = currentName.substring(closingBracket + 1);
         }
-        String newName = "(" + miliSecond + ((id != null && !id.isEmpty()) ? "|" + id : "") + ")" + currentName;
+        String newName = "(" + milliSecond + ((id != null && !id.isEmpty()) ? "|" + id : "") + ")" + currentName;
         String newValue = parts.length > 1 ? parts[1] : "";
         updateLineByIndex(index, newName, newValue);
     }
 
-    public void assignIntervalChange(int miliSecond, String id) {
-        assignIntervalChange(miliSecond, id, -1);
+    public void assignIntervalChange(int milliSecond, String id) {
+        assignIntervalChange(milliSecond, id, -1);
     }
 
-    public void assignIntervalChange(int miliSecond) {
-        assignIntervalChange(miliSecond, null, -1);
+    public void assignIntervalChange(int milliSecond) {
+        assignIntervalChange(milliSecond, null, -1);
     }
 
     public void deleteInterval(String id) {
@@ -2408,6 +2504,7 @@ public class WebForms {
         add("}");
     }
 
+	// High-Level Methods
     // Used Then In Condition And Loop Methods
     public WebForms then(WebForms newForm) {
         String data = newForm != null ? newForm.getWebFormsData() : null;
@@ -2474,16 +2571,6 @@ public class WebForms {
         return this;
     }
 
-    public WebForms repeat(Runnable configure, int repeat) {
-        WebForms newForm = new WebForms();
-        // Note: In Java, a Runnable cannot modify an external WebForms instance easily without a custom functional interface.
-        // To mimic C# Action<WebForms>, we assume the user passes a configured instance or we use a custom interface.
-        // For strict translation of the concept, we'll use a custom functional interface defined below or just pass the instance.
-        // Since we can't change the signature easily without breaking the "exact match" rule, we will assume the configure action operates on a new instance passed to it.
-        // However, standard Java doesn't have Action<T>. We will use a custom interface Consumer<WebForms> for this specific overload.
-        return this; // Placeholder, see Consumer interface at bottom of file
-    }
-
     public WebForms repeat(Consumer<WebForms> configure, int repeat) {
         WebForms newForm = new WebForms();
         configure.accept(newForm);
@@ -2495,6 +2582,88 @@ public class WebForms {
         configure.accept(newForm);
         return repeat(newForm, repeat, index);
     }
+	
+	public WebForms isole(WebForms newForm, String inputPlace) {
+		if (newForm == null) {
+			return this;
+		}
+
+		String bodyData = newForm.getWebFormsData();
+
+		if (bodyData == null || bodyData.isEmpty()) {
+			return this;
+		}
+
+		WebForms form = new WebForms();
+		form.startTransientDOM(inputPlace);
+
+		appendForm(form);
+		newForm.endTransientDOM();
+		appendForm(newForm);
+
+		return this;
+	}
+
+	public WebForms isole(Consumer<WebForms> configure, String inputPlace) {
+		WebForms newForm = new WebForms();
+		configure.accept(newForm);
+		return isole(newForm, inputPlace);
+	}
+
+	// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+	public WebForms render(WebForms newForm, String inputPlace, String key, boolean permanent) {
+		if (newForm == null) {
+			return this;
+		}
+
+		String bodyData = newForm.getWebFormsData();
+
+		if (bodyData == null || bodyData.isEmpty()) {
+			return this;
+		}
+
+		if (key == null || key.isEmpty()) {
+			key = inputPlace;
+		}
+
+		WebForms form = new WebForms();
+
+		form.exist(permanent ? Fetch.cache(key) : Fetch.save(key));
+			form.rollback(inputPlace, key, permanent);
+		form.elseBranch();
+			form.snapshot(inputPlace, key, permanent);
+
+		form.startTransientDOM(inputPlace);
+
+		appendForm(form);
+		newForm.endTransientDOM();
+		appendForm(newForm);
+
+		return this;
+	}
+
+	public WebForms render(WebForms newForm, String inputPlace) {
+		return render(newForm, inputPlace, "", false);
+	}
+
+	public WebForms render(WebForms newForm, String inputPlace, String key) {
+		return render(newForm, inputPlace, key, false);
+	}
+
+	public WebForms render(Consumer<WebForms> configure, String inputPlace, String key, boolean permanent) {
+		WebForms newForm = new WebForms();
+		configure.accept(newForm);
+		return render(newForm, inputPlace, key, permanent);
+	}
+
+	public WebForms render(Consumer<WebForms> configure, String inputPlace) {
+		return render(configure, inputPlace, "", false);
+	}
+
+	public WebForms render(Consumer<WebForms> configure, String inputPlace, String key) {
+		return render(configure, inputPlace, key, false);
+	}
 
     // Async
     // It Supports Brackets and Then
@@ -2503,12 +2672,12 @@ public class WebForms {
         return this;
     }
 
-    public void delay(String miliSecond) {
-        add("De", miliSecond);
+    public void delay(String milliSecond) {
+        add("De", milliSecond);
     }
 
-    public void delay(int miliSecond) {
-        delay(String.valueOf(miliSecond));
+    public void delay(int milliSecond) {
+        delay(String.valueOf(milliSecond));
     }
 
     // Option
