@@ -1,5 +1,5 @@
-// WebForms.java 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.java 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 package webformscore;
 
@@ -25,7 +25,7 @@ public class ExtensionWebFormsMethods {
         if (text == null || text.length() < 1) {
             return value;
         }
-        return text + "?" + value.replace("|", "$[vb];").replace("?", "$[qu];");
+        return text + "?" + value.replace("|", "$[vb];").replace("?", "$[qu];").replace("=", "$[eq];");
     }
 
     public static String appendFetchReplace(String text, String searchValue, String value) {
