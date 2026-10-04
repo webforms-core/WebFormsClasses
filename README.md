@@ -343,23 +343,15 @@ npm install webformscore-ts
 ## Other programming languages 
 - **Scala, Kotlin, Groovy, Clojure and ColdFusion:** Because the WebForms class is provided as a Java library on Maven Central, these JVM-based programming languages can directly use the Java WebForms class through their Java interoperability and standard build tools such as Maven, Gradle, or SBT.
 - **Objective-C:** C functions can be called directly from Objective-C, so the C WebForms.h API can be used directly.
-- **Visual Basic:** You can easily use the C# [WebForms.cs](https://github.com/elanatframework/Code_behind/blob/elanat_framework/class/WebForms.cs) class for Visual Basic programming language.
+- **Visual Basic:** Visual Basic can target .NET Framework. The WFC NuGet package supports .NET 7.0 and later, but it does not directly support .NET Framework. As a workaround, you can compile C# [WebForms class](https://github.com/webforms-core/WebFormsClasses/blob/elanat_framework/csharp/WebForms.cs) and consume it from Visual Basic.
 - **F#:** The .NET WebForms class can be used directly from F# through the WFC package on NuGet.
 - **Erlang and Gleam:** The Elixir WebForms class can be used from Erlang and Gleam through the Erlang VM.
-- **Less popular programming languages:** We strive to provide the WebForms class on the server for 99% of web development cases; if you would like to use WebForms Core technology in a less popular programming language (on the web), ask senior developers to convert the [WebForms.cs](https://github.com/elanatframework/Code_behind/blob/elanat_framework/class/WebForms.cs) class to your preferred programming language and submit a pull request to this repository.
-- **Deprecated programming languages:** The likelihood of using these programming languages ​​is low, but we respect the developers of these programming languages, so you can still ask senior developers to convert the [WebForms.cs](https://github.com/elanatframework/Code_behind/blob/elanat_framework/class/WebForms.cs) class to your preferred programming language and submit a pull request to this repository.
+- **Less popular programming languages:** We strive to provide the WebForms class on the server for 99% of web development cases; if you would like to use WebForms Core technology in a less popular programming language (on the web), ask senior developers to convert the [WebForms.cs](https://github.com/webforms-core/WebFormsClasses/blob/elanat_framework/csharp/WebForms.cs) class to your preferred programming language and submit a pull request to this repository.
+- **Deprecated programming languages:** The likelihood of using these programming languages ​​is low, but we respect the developers of these programming languages, so you can still ask senior developers to convert the [WebForms.cs](https://github.com/webforms-core/WebFormsClasses/blob/elanat_framework/csharp/WebForms.cs) class to your preferred programming language and submit a pull request to this repository.
 
 ## Feel free to create pull requests
-In this repository, you can convert the WebForms class in the CodeBehind framework (written in C# programming language) into a WebForms class in your desired programming language.
+In this repository, you can convert the WebForms class in this repository (written in C# programming language) into a WebForms class in your desired programming language.
 
-The WebForms class is available in the CodeBehind framework at the following link:
-
-https://github.com/elanatframework/Code_behind/blob/elanat_framework/class/WebForms.cs
-
-The pull request should include a directory with the same name as the programming language, and in this directory a class called WebForms with the corresponding source code should be created. The WebForms class must be based on the WebForms class in the CodeBehind framework.
+The pull request should include a directory with the same name as the programming language, and in this directory a class called WebForms with the corresponding source code should be created. The WebForms class must be based on the C# WebForms class in this repository.
 
 We encourage web professionals to integrate WebForms Core technology so that it is easily available in web frameworks. The contents of the module must be added in a directory with the same name as the corresponding framework in the framework's programming language.
-
-> Note: You do not need to use the CodeBehind namespace to create a WebForms class for programming languages. If you are creating a new module to be used in web frameworks, you must add the namespace for the relevant web framework.
-
-Please do not pull request to add new feature. The new features require a coordination between the WebFormsJS library and the WebForms class. So first, new features are added in the CodeBehind framework, and then you can submit pull requests for these new features in WebForms classes or WebForms modules.
