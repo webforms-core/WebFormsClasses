@@ -1,5 +1,5 @@
-# WebForms.py 2.1.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-# Compatible with WebFormsJS version 2.1
+# WebForms.py 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+# Compatible with WebFormsJS version 2.2
 
 from typing import Optional, Union, List, Callable
 
@@ -224,6 +224,9 @@ class WebForms:
     def set_checked_index_int(self, input_place: str, index: int, checked: bool) -> None:
         self.set_checked_index(input_place, str(index), checked)
 
+    def set_custom_validity(self, input_place: str, text: str) -> None:
+        self._add("cv" + input_place, text.replace('\n', "$[ln];"))
+
     # Insert
     # Creates the Data only if it does not exist; otherwise, does nothing.
     def insert_id(self, input_place: str, id_val: str) -> None:
@@ -310,14 +313,14 @@ class WebForms:
     def delete_parent(self, input_place: str) -> None:
         self._add("dp" + input_place)
 
-    # Tag
+    # Tag Transformation
     def swap_tag(self, input_place: str, output_place: str) -> None:
         self._add("sp" + input_place, output_place)
 
-    def set_reflection(self, input_place: str, tag: str) -> None:
+    def set_reflect(self, input_place: str, tag: str) -> None:
         self._add("sR" + input_place, tag)
 
-    def set_reflection_by_output_place(self, input_place: str, output_place: str) -> None:
+    def set_reflect_by_output_place(self, input_place: str, output_place: str) -> None:
         self._add("iR" + input_place, output_place)
 
     def set_morph(self, input_place: str, tag: str) -> None:
@@ -325,6 +328,17 @@ class WebForms:
 
     def set_morph_by_output_place(self, input_place: str, output_place: str) -> None:
         self._add("iM" + input_place, output_place)
+
+    # The Snapshot and Rollback Mechanism is Sensitive to DOM Changes;
+    # It is Recommended to Assign a Stable ID to the Selected Element.
+    # input_place: Only One Tag
+    def snapshot(self, input_place: str, key: str = "", permanent: bool = False) -> None:
+        value = (input_place if not key else key) + (self._GS + "1" if permanent else "")
+        self._add("rS" + input_place, value)
+
+    def rollback(self, input_place: str, key: str = "", permanent: bool = False) -> None:
+        value = (input_place if not key else key) + (self._GS + "1" if permanent else "")
+        self._add("rB" + input_place, value)
 
     # Browser
     def change_url(self, url: str) -> None:
@@ -801,6 +815,15 @@ class WebForms:
     def create_debugger(self, pause: bool = False) -> None:
         self._add("Dc", "1" if pause else "0")
 
+    def try_(self) -> None:
+        self._add("tr")
+
+    def catch(self) -> None:
+        self._add("ca")
+
+    def comment(self, text: str) -> None:
+        self._add("//", text)
+
     # Service Worker
     # To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
     def service_worker_register(self, path: Optional[str] = None, scope_path: Optional[str] = None) -> None:
@@ -877,6 +900,12 @@ class WebForms:
 
     def delete_all_state(self) -> None:
         self._add("DS", "*")
+
+    def lock_queue(self, millisecond: str) -> None:
+        self._add("lq", millisecond)
+
+    def lock_queue_int(self, millisecond: int) -> None:
+        self.lock_queue(str(millisecond))
 
     # Cookie
     def set_cookie(self, key: str, value: str, seconds: str, path: Optional[str] = None) -> None:
@@ -971,6 +1000,24 @@ class WebForms:
     def replace_save_value(self, cache_key: str, search_value: str, value: str) -> None:
         self._add("SR", cache_key + self._GS + value.replace('\n', "$[ln];") + self._GS + search_value.replace('\n', "$[ln];"))
 
+    # Is Regex Replace
+    def set_format_save_value(self, cache_key: str, regex: str, replacement: str) -> None:
+        self._add("SF", cache_key + self._GS + regex + self._GS + replacement.replace('\n', "$[ln];"))
+
+    # Operator: +, -, *, /, %, //, **
+    def set_arithmetic_save_value(self, cache_key: str, operator: str, value: str) -> None:
+        self._add("SM", cache_key + self._GS + operator + self._GS + value)
+
+    def set_arithmetic_save_value_int(self, cache_key: str, operator: str, value: int) -> None:
+        self.set_arithmetic_save_value(cache_key, operator, str(value))
+
+    # Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+    def set_text_operation_save_value(self, cache_key: str, operation: str, value1: str, value2: str) -> None:
+        self._add("ST", cache_key + self._GS + operation + self._GS + value1 + self._GS + value2)
+
+    def set_text_operation_save_value_int(self, cache_key: str, operation: str, value1: int, value2: int) -> None:
+        self.set_text_operation_save_value(cache_key, operation, str(value1), str(value2))
+
     # Cache
     def cache_id(self, input_place: str, key: str = ".") -> None:
         self._add("@ci" + input_place, key)
@@ -1062,6 +1109,24 @@ class WebForms:
 
     def replace_cache_value(self, cache_key: str, search_value: str, value: str) -> None:
         self._add("CR", cache_key + self._GS + value.replace('\n', "$[ln];") + self._GS + search_value.replace('\n', "$[ln];"))
+
+    # Is Regex Replace
+    def set_format_cache_value(self, cache_key: str, regex: str, replacement: str) -> None:
+        self._add("CF", cache_key + self._GS + regex + self._GS + replacement.replace('\n', "$[ln];"))
+
+    # Operator: +, -, *, /, %, //, **
+    def set_arithmetic_cache_value(self, cache_key: str, operator: str, value: str) -> None:
+        self._add("CM", cache_key + self._GS + operator + self._GS + value)
+
+    def set_arithmetic_cache_value_int(self, cache_key: str, operator: str, value: int) -> None:
+        self.set_arithmetic_cache_value(cache_key, operator, str(value))
+
+    # Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+    def set_text_operation_cache_value(self, cache_key: str, operation: str, value1: str, value2: str) -> None:
+        self._add("CT", cache_key + self._GS + operation + self._GS + value1 + self._GS + value2)
+
+    def set_text_operation_cache_value_int(self, cache_key: str, operation: str, value1: int, value2: int) -> None:
+        self.set_text_operation_cache_value(cache_key, operation, str(value1), str(value2))
 
     # Call
     def load_url(self, input_place: str, url: str) -> None:
@@ -1155,16 +1220,16 @@ class WebForms:
         self._add("gt" + input_place, "s" + self._GS + value + self._GS + new_value)
 
     # Pre Runner
-    def assign_delay(self, mili_second: int, index: int = -1) -> None:
+    def assign_delay(self, milli_second: int, index: int = -1) -> None:
         current_line = self._get_line_by_index(index)
         if not current_line:
             return
         parts = current_line.split('=', 1)
-        new_name = ":" + str(mili_second) + ")" + parts[0]
+        new_name = ":" + str(milli_second) + ")" + parts[0]
         new_value = parts[1] if len(parts) > 1 else ""
         self._update_line_by_index(index, new_name, new_value)
 
-    def assign_delay_change(self, mili_second: int, index: int = -1) -> None:
+    def assign_delay_change(self, milli_second: int, index: int = -1) -> None:
         current_line = self._get_line_by_index(index)
         if not current_line:
             return
@@ -1173,20 +1238,20 @@ class WebForms:
         if current_name.startswith(":") and ")" in current_name:
             closing_bracket = current_name.index(')')
             current_name = current_name[closing_bracket + 1:]
-        new_name = ":" + str(mili_second) + ")" + current_name
+        new_name = ":" + str(milli_second) + ")" + current_name
         new_value = parts[1] if len(parts) > 1 else ""
         self._update_line_by_index(index, new_name, new_value)
 
-    def assign_interval(self, mili_second: int, id_val: Optional[str] = None, index: int = -1) -> None:
+    def assign_interval(self, milli_second: int, id_val: Optional[str] = None, index: int = -1) -> None:
         current_line = self._get_line_by_index(index)
         if not current_line:
             return
         parts = current_line.split('=', 1)
-        new_name = "(" + str(mili_second) + ("|" + id_val if id_val else "") + ")" + parts[0]
+        new_name = "(" + str(milli_second) + ("|" + id_val if id_val else "") + ")" + parts[0]
         new_value = parts[1] if len(parts) > 1 else ""
         self._update_line_by_index(index, new_name, new_value)
 
-    def assign_interval_change(self, mili_second: int, id_val: Optional[str] = None, index: int = -1) -> None:
+    def assign_interval_change(self, milli_second: int, id_val: Optional[str] = None, index: int = -1) -> None:
         current_line = self._get_line_by_index(index)
         if not current_line:
             return
@@ -1195,7 +1260,7 @@ class WebForms:
         if current_name.startswith("(") and ")" in current_name:
             closing_bracket = current_name.index(')')
             current_name = current_name[closing_bracket + 1:]
-        new_name = "(" + str(mili_second) + ("|" + id_val if id_val else "") + ")" + current_name
+        new_name = "(" + str(milli_second) + ("|" + id_val if id_val else "") + ")" + current_name
         new_value = parts[1] if len(parts) > 1 else ""
         self._update_line_by_index(index, new_name, new_value)
 
@@ -1394,10 +1459,10 @@ class WebForms:
         self._add("{fe", path + self._GS + in_val + self._GS + key)
         return self
 
-    def break_loop(self) -> None:
+    def break_(self) -> None:
         self._add(";")
 
-    def else_branch(self) -> 'WebForms':
+    def else_(self) -> 'WebForms':
         self._add("}e")
         return self
 
@@ -1407,6 +1472,7 @@ class WebForms:
     def end_bracket(self) -> None:
         self._add("}")
 
+    # High-Level Methods
     # Used Then In Condition And Loop Methods
     def then(self, new_form: Optional['WebForms']) -> 'WebForms':
         if new_form is None:
@@ -1470,17 +1536,78 @@ class WebForms:
         configure(new_form)
         return self.repeat_with_index(new_form, repeat, index)
 
+    def isole(self, new_form: 'WebForms', input_place: str) -> 'WebForms':
+        if new_form is None:
+            return self
+
+        body_data = new_form.get_web_forms_data()
+        if not body_data:
+            return self
+
+        form = WebForms()
+        form.start_transient_dom(input_place)
+
+        self.append_form(form)
+        new_form.end_transient_dom()
+        self.append_form(new_form)
+
+        return self
+
+    def isole_closure(self, configure: Callable[['WebForms'], None], input_place: str) -> 'WebForms':
+        new_form = WebForms()
+        configure(new_form)
+        return self.isole(new_form, input_place)
+
+    # The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+    # This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+    def render(self, new_form: 'WebForms', input_place: str, key: str = "", permanent: bool = False) -> 'WebForms':
+        if new_form is None:
+            return self
+
+        body_data = new_form.get_web_forms_data()
+        if not body_data:
+            return self
+
+        if not key:
+            key = input_place
+
+        form = WebForms()
+
+        form.exist(Fetch.cache(key) if permanent else Fetch.save(key))
+        form.rollback(input_place, key, permanent)
+        form.else_()
+        form.snapshot(input_place, key, permanent)
+
+        form.start_transient_dom(input_place)
+
+        self.append_form(form)
+        new_form.end_transient_dom()
+        self.append_form(new_form)
+
+        return self
+
+    def render_closure(
+        self,
+        configure: Callable[['WebForms'], None],
+        input_place: str,
+        key: str = "",
+        permanent: bool = False,
+    ) -> 'WebForms':
+        new_form = WebForms()
+        configure(new_form)
+        return self.render(new_form, input_place, key, permanent)
+
     # Async
     # It Supports Brackets and Then
-    def async_method(self) -> 'WebForms':
+    def async_(self) -> 'WebForms':
         self._add("{(a)")
         return self
 
-    def delay(self, mili_second: str) -> None:
-        self._add("De", mili_second)
+    def delay(self, milli_second: str) -> None:
+        self._add("De", milli_second)
 
-    def delay_int(self, mili_second: int) -> None:
-        self.delay(str(mili_second))
+    def delay_int(self, milli_second: int) -> None:
+        self.delay(str(milli_second))
 
     # Option
     def change_option(self, name: str, value: str) -> None:
@@ -1803,7 +1930,7 @@ class Fetch:
 
     # MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
     @staticmethod
-    def wasm_method(wasm_language: str, wasm_url: str, method_name: str, args: Optional[List[str]] = None, key: str = ".") -> str:
+    def wasm_method(wasm_language: str, wasm_url: str, method_name: str, args: Optional[List[str]] = None) -> str:
         return_value = "@wA" + wasm_language + Fetch._RS + wasm_url + Fetch._RS + method_name
         if args is not None and len(args) > 0:
             return_value += Fetch._RS + Fetch._US.join(args)
@@ -1862,7 +1989,7 @@ class Fetch:
             return_value += Fetch._RS + Fetch._US.join(args)
         return return_value
 
-    # Data
+    # Date
     DATE_YEAR = "@dy"
     # Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
     DATE_MONTH = "@dm"
@@ -1958,7 +2085,11 @@ class Fetch:
     def get_is_visible(input_place: str) -> str:
         return "@$V" + input_place
 
-    # Save
+    @staticmethod
+    def get_tag_hash(input_place: str) -> str:
+        return "@$H" + input_place
+
+    # Save and Cache
     @staticmethod
     def has_hash(hash_val: str) -> str:
         return "@HH" + hash_val
@@ -2123,13 +2254,10 @@ class Fetch:
 
 
 class WasmLanguage:
-    # The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
     C = "c"
     CPP = "c"
     RUST = "rust"
     C_SHARP = "csharp"
-    # .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-    C_SHARP_MEDIATOR = "csharp-m"
     GO = "go"
     JAVA = "java"
     ASSEMBLY_SCRIPT = "as"
@@ -2318,7 +2446,7 @@ class ExtensionWebFormsMethods:
     def criteria(text: str, value: str) -> str:
         if len(text) < 1:
             return value
-        return text + "?" + value.replace("|", "$[vb];").replace("?", "$[qu];")
+        return text + "?" + value.replace("|", "$[vb];").replace("?", "$[qu];").replace("=", "$[eq];")
 
     @staticmethod
     def append_fetch_replace(text: str, search_value: str, value: str) -> str:
