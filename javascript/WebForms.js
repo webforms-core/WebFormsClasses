@@ -1,5 +1,5 @@
-// WebForms.js 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.js 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 export class WebForms {
     static GS = "\x1D";
@@ -118,6 +118,7 @@ export class WebForms {
     setSelectedIndex(inputPlace, index) { this._add("ti" + inputPlace, index); }
     setCheckedValue(inputPlace, value, checked) { this._add("ks" + inputPlace, value + WebForms.GS + (checked ? "1" : "0")); }
     setCheckedIndex(inputPlace, index, checked) { this._add("ki" + inputPlace, index + WebForms.GS + (checked ? "1" : "0")); }
+	setCustomValidity(inputPlace, text) { this._add("cv" + inputPlace, text.replace(/\n/g, "$[ln];")); }
 
     // Insert
     // Creates the Data only if it does not exist; otherwise, does nothing.
@@ -158,12 +159,16 @@ export class WebForms {
     delete(inputPlace) { this._add("de" + inputPlace); }
     deleteParent(inputPlace) { this._add("dp" + inputPlace); }
 
-    // Tag
+    // Tag Transformation
     swapTag(inputPlace, outputPlace) { this._add("sp" + inputPlace, outputPlace); }
-    setReflection(inputPlace, tag) { this._add("sR" + inputPlace, tag); }
-    setReflectionByOutputPlace(inputPlace, outputPlace) { this._add("iR" + inputPlace, outputPlace); }
+    setReflect(inputPlace, tag) { this._add("sR" + inputPlace, tag); }
+    setReflectByOutputPlace(inputPlace, outputPlace) { this._add("iR" + inputPlace, outputPlace); }
     setMorph(inputPlace, tag) { this._add("sM" + inputPlace, tag); }
     setMorphByOutputPlace(inputPlace, outputPlace) { this._add("iM" + inputPlace, outputPlace); }
+	// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// inputPlace: Only One Tag
+	snapshot(inputPlace, key = "", permanent = false) {this._add("rS" + inputPlace, (key !== "" ? key : inputPlace) + (permanent ? WebForms.GS + "1" : "")); }
+	rollback(inputPlace, key = "", permanent = false) {this._add("rB" + inputPlace, (key !== "" ? key : inputPlace) + (permanent ? WebForms.GS + "1" : "")); }
 
     // Browser
     changeUrl(url) { this._add("cu", url); }
@@ -484,6 +489,9 @@ export class WebForms {
 
     // Debug
     createDebugger(pause = false) { this._add("Dc", pause ? "1" : "0"); }
+	try() { this._add("tr"); }
+	catch() { this._add("ca"); }
+	comment(text) { this._add("//", text); }
 
     // Service Worker
     // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -543,6 +551,7 @@ export class WebForms {
         else this._add("DS", "*");
     }
     deleteAllState() { this._add("DS", "*"); }
+	lockQueue(millisecond) { this._add("lq", typeof millisecond === "number" ? millisecond.toString() : millisecond); }
 
     // Cookie
     setCookie(key, value, seconds, path = null) {
@@ -580,6 +589,23 @@ export class WebForms {
     insertSaveValue(cacheKey, value) { this._add("SI", cacheKey + WebForms.GS + value.replace(/\n/g, "$[ln];")); }
     appendSaveValue(cacheKey, value) { this._add("SP", cacheKey + WebForms.GS + value.replace(/\n/g, "$[ln];")); }
     replaceSaveValue(cacheKey, searchValue, value) { this._add("SR", cacheKey + WebForms.GS + value.replace(/\n/g, "$[ln];") + WebForms.GS + searchValue.replace(/\n/g, "$[ln];")); }
+	// Is Regex Replace
+	setFormatSaveValue(cacheKey, regex, replacement) {
+		this._add("SF", cacheKey + WebForms.GS + regex + WebForms.GS + replacement.replace(/\n/g, "$[ln];"));
+	}
+	// Operator: +, -, *, /, %, //, **
+	setArithmeticSaveValue(cacheKey, operator, value) {
+		this._add("SM", cacheKey + WebForms.GS + operator + WebForms.GS + (typeof value === "number" ? value.toString() : value));
+	}
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	setTextOperationSaveValue(cacheKey, operation, value1, value2) {
+		this._add(
+			"ST",
+			cacheKey + WebForms.GS + operation + WebForms.GS +
+			(typeof value1 === "number" ? value1.toString() : value1) + WebForms.GS +
+			(typeof value2 === "number" ? value2.toString() : value2)
+		);
+	}
 
     // Cache
     cacheId(inputPlace, key = ".") { this._add("@ci" + inputPlace, key); }
@@ -615,6 +641,31 @@ export class WebForms {
     insertCacheValue(cacheKey, value) { this._add("CI", cacheKey + WebForms.GS + value.replace(/\n/g, "$[ln];")); }
     appendCacheValue(cacheKey, value) { this._add("CP", cacheKey + WebForms.GS + value.replace(/\n/g, "$[ln];")); }
     replaceCacheValue(cacheKey, searchValue, value) { this._add("CR", cacheKey + WebForms.GS + value.replace(/\n/g, "$[ln];") + WebForms.GS + searchValue.replace(/\n/g, "$[ln];")); }
+	// Is Regex Replace
+	setFormatCacheValue(cacheKey, regex, replacement) {
+		this._add(
+			"CF",
+			cacheKey + WebForms.GS + regex + WebForms.GS +
+			replacement.replace(/\n/g, "$[ln];")
+		);
+	}
+	// Operator: +, -, *, /, %, //, **
+	setArithmeticCacheValue(cacheKey, operator, value) {
+		this._add(
+			"CM",
+			cacheKey + WebForms.GS + operator + WebForms.GS +
+			(typeof value === "number" ? value.toString() : value)
+		);
+	}
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	setTextOperationCacheValue(cacheKey, operation, value1, value2) {
+		this._add(
+			"CT",
+			cacheKey + WebForms.GS + operation + WebForms.GS +
+			(typeof value1 === "number" ? value1.toString() : value1) + WebForms.GS +
+			(typeof value2 === "number" ? value2.toString() : value2)
+		);
+	}
 
     // Call
     loadUrl(inputPlace, url) { this._add("lu" + inputPlace, url); }
@@ -685,16 +736,16 @@ export class WebForms {
     replaceStartTag(inputPlace, value, newValue) { this._add("gt" + inputPlace, "s" + WebForms.GS + value + WebForms.GS + newValue); }
 
     // Pre Runner
-    assignDelay(miliSecond, index = -1) {
+    assignDelay(milliSecond, index = -1) {
         const currentLine = this._getLineByIndex(index);
         if (currentLine === "") return;
         const parts = currentLine.split("=", 2);
-        const newName = ":" + miliSecond + ")" + parts[0];
+        const newName = ":" + milliSecond + ")" + parts[0];
         const newValue = parts.length > 1 ? parts[1] : "";
         this._updateLineByIndex(index, newName, newValue);
     }
     
-    assignDelayChange(miliSecond, index = -1) {
+    assignDelayChange(milliSecond, index = -1) {
         const currentLine = this._getLineByIndex(index);
         if (currentLine === "") return;
         const parts = currentLine.split("=", 2);
@@ -703,21 +754,21 @@ export class WebForms {
             const closingBracket = currentName.indexOf(")");
             currentName = currentName.substring(closingBracket + 1);
         }
-        const newName = ":" + miliSecond + ")" + currentName;
+        const newName = ":" + milliSecond + ")" + currentName;
         const newValue = parts.length > 1 ? parts[1] : "";
         this._updateLineByIndex(index, newName, newValue);
     }
     
-    assignInterval(miliSecond, id = null, index = -1) {
+    assignInterval(milliSecond, id = null, index = -1) {
         const currentLine = this._getLineByIndex(index);
         if (currentLine === "") return;
         const parts = currentLine.split("=", 2);
-        const newName = "(" + miliSecond + (id !== null ? "|" + id : "") + ")" + parts[0];
+        const newName = "(" + milliSecond + (id !== null ? "|" + id : "") + ")" + parts[0];
         const newValue = parts.length > 1 ? parts[1] : "";
         this._updateLineByIndex(index, newName, newValue);
     }
     
-    assignIntervalChange(miliSecond, id = null, index = -1) {
+    assignIntervalChange(milliSecond, id = null, index = -1) {
         const currentLine = this._getLineByIndex(index);
         if (currentLine === "") return;
         const parts = currentLine.split("=", 2);
@@ -726,7 +777,7 @@ export class WebForms {
             const closingBracket = currentName.indexOf(")");
             currentName = currentName.substring(closingBracket + 1);
         }
-        const newName = "(" + miliSecond + (id !== null ? "|" + id : "") + ")" + currentName;
+        const newName = "(" + milliSecond + (id !== null ? "|" + id : "") + ")" + currentName;
         const newValue = parts.length > 1 ? parts[1] : "";
         this._updateLineByIndex(index, newName, newValue);
     }
@@ -844,7 +895,8 @@ export class WebForms {
     else() { this._add("}e"); return this; }
     startBracket() { this._add("{"); }
     endBracket() { this._add("}"); }
-    
+
+	// High-Level Methods
     // Used Then In Condition And Loop Methods
     then(newForm) {
         if (newForm === null) return this;
@@ -914,10 +966,64 @@ export class WebForms {
         return this.repeatWithIndex(newForm, repeat, index);
     }
 
+	isole(newForm, inputPlace) {
+		if (newForm === null) return this;
+
+		const bodyData = newForm.getWebFormsData();
+		if (bodyData === "") return this;
+
+		const form = new WebForms();
+		form.startTransientDOM(inputPlace);
+
+		this.appendForm(form);
+		newForm.endTransientDOM();
+		this.appendForm(newForm);
+
+		return this;
+	}
+
+	isoleClosure(configure, inputPlace) {
+		const newForm = new WebForms();
+		configure(newForm);
+		return this.isole(newForm, inputPlace);
+	}
+
+	// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+	render(newForm, inputPlace, key = "", permanent = false) {
+		if (newForm === null) return this;
+
+		const bodyData = newForm.getWebFormsData();
+		if (bodyData === "") return this;
+
+		if (key === "") key = inputPlace;
+
+		const form = new WebForms();
+
+		form.exist(permanent ? Fetch.cache(key) : Fetch.save(key));
+			form.rollback(inputPlace, key, permanent);
+		form.else();
+			form.snapshot(inputPlace, key, permanent);
+
+		form.startTransientDOM(inputPlace);
+
+		this.appendForm(form);
+		newForm.endTransientDOM();
+		this.appendForm(newForm);
+
+		return this;
+	}
+
+	renderClosure(configure, inputPlace, key = "", permanent = false) {
+		const newForm = new WebForms();
+		configure(newForm);
+		return this.render(newForm, inputPlace, key, permanent);
+	}
+
     // Async
     // It Supports Brackets and Then
     async() { this._add("{(a)"); return this; }
-    delay(miliSecond) { this._add("De", miliSecond); }
+    delay(milliSecond) { this._add("De", milliSecond); }
 
     // Option
     changeOption(name, value) { this._add("co", name + WebForms.GS + value); }
@@ -1144,7 +1250,7 @@ export class Fetch {
         return "@M#" + methodName + (args !== null && args.length > 0 ? Fetch.RS + args.map(String).join(Fetch.US) : "");
     }
 
-    // Data
+    // Date
     static DATE_YEAR = "@dy";
     // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
     static DATE_MONTH = "@dm";
@@ -1180,8 +1286,9 @@ export class Fetch {
     static getTextAlign(inputPlace) { return "@$T" + inputPlace; }
     static getNodeLength(inputPlace) { return "@$L" + inputPlace; }
     static getIsVisible(inputPlace) { return "@$V" + inputPlace; }
+	static getTagHash(inputPlace) { return "@$H" + inputPlace; }
 
-    // Save
+    // Save and Cache
     static hasHash(hash) { return "@HH" + hash; }
     static cookie(key) { return "@co" + key; }
     static save(key = ".", replaceValue = null) { return "@cs" + key + (replaceValue !== null ? Fetch.RS + replaceValue : ""); }
@@ -1271,13 +1378,10 @@ export class Fetch {
 }
 
 export class WasmLanguage {
-    // The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
     static C = "c";
     static CPP = "c";
     static Rust = "rust";
     static CSharp = "csharp";
-    // .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-    static CSharpMediator = "csharp-m";
     static GO = "go";
     static JAVA = "java";
     static AssemblyScript = "as";
@@ -1461,7 +1565,7 @@ export class ExtensionWebFormsMethods {
 
     static criteria(text, value) {
         if (text.length < 1) return value;
-        return text + "?" + value.replace(/\|/g, "$[vb];").replace(/\?/g, "$[qu];");
+        return text + "?" + value.replace(/\|/g, "$[vb];").replace(/\?/g, "$[qu];").replace(/=/g, "$[eq];");
     }
 
     static appendFetchReplace(text, searchValue, value) {
