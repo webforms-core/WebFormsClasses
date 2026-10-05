@@ -1,5 +1,5 @@
-# web_forms.rb 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-# Compatible with WebFormsJS version 2.1
+# web_forms.rb 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+# Compatible with WebFormsJS version 2.2
 
 module WebFormsCore
   class WebForms
@@ -269,6 +269,10 @@ module WebFormsCore
       add("ki" + input_place, index.to_s + GS + (checked ? "1" : "0"))
     end
 
+	def set_custom_validity(input_place, text)
+	  add("cv" + input_place, text.gsub("\n", "$[ln];"))
+	end
+
     # Insert
     # Creates the Data only if it does not exist; otherwise, does nothing.
     def insert_id(input_place, id)
@@ -380,16 +384,16 @@ module WebFormsCore
       add("dp" + input_place)
     end
 
-    # Tag
+    # Tag Transformation
     def swap_tag(input_place, output_place)
       add("sp" + input_place, output_place)
     end
 
-    def set_reflection(input_place, tag)
+    def set_reflect(input_place, tag)
       add("sR" + input_place, tag)
     end
 
-    def set_reflection_by_output_place(input_place, output_place)
+    def set_reflect_by_output_place(input_place, output_place)
       add("iR" + input_place, output_place)
     end
 
@@ -400,6 +404,14 @@ module WebFormsCore
     def set_morph_by_output_place(input_place, output_place)
       add("iM" + input_place, output_place)
     end
+
+	def snapshot(input_place, key = "", permanent = false)
+	  add("rS" + input_place, ((key.nil? || key.empty?) ? input_place : key) + (permanent ? GS + "1" : ""))
+	end
+
+	def rollback(input_place, key = "", permanent = false)
+	  add("rB" + input_place, ((key.nil? || key.empty?) ? input_place : key) + (permanent ? GS + "1" : ""))
+	end
 
     # Browser
     def change_url(url)
@@ -933,6 +945,18 @@ module WebFormsCore
       add("Dc", pause ? "1" : "0")
     end
 
+	def try_
+	  add("tr")
+	end
+
+	def catch_
+	  add("ca")
+	end
+
+	def comment(text)
+	  add("//", text)
+	end
+
     # Service Worker
     # To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
     def service_worker_register(path = nil, scope_path = nil)
@@ -1022,6 +1046,10 @@ module WebFormsCore
     def delete_all_state
       add("DS", "*")
     end
+
+	def lock_queue(millisecond)
+	  add("lq", millisecond.to_s)
+	end
 
     # Cookie
     def set_cookie(key, value, seconds, path = nil)
@@ -1142,6 +1170,21 @@ module WebFormsCore
       add("SR", cache_key + GS + value.gsub("\n", "$[ln];") + GS + search_value.gsub("\n", "$[ln];"))
     end
 
+	# Is Regex Replace
+	def set_format_save_value(cache_key, regex, replacement)
+	  add("SF", cache_key + GS + regex + GS + replacement.gsub("\n", "$[ln];"))
+	end
+
+	# Operator: +, -, *, /, %, //, **
+	def set_arithmetic_save_value(cache_key, operator, value)
+	  add("SM", cache_key + GS + operator + GS + value.to_s)
+	end
+
+	# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	def set_text_operation_save_value(cache_key, operation, value1, value2)
+	  add("ST", cache_key + GS + operation + GS + value1.to_s + GS + value2.to_s)
+	end
+
     # Cache
     def cache_id(input_place, key = ".")
       add("@ci" + input_place, key)
@@ -1259,7 +1302,22 @@ module WebFormsCore
     def replace_cache_value(cache_key, search_value, value)
       add("CR", cache_key + GS + value.gsub("\n", "$[ln];") + GS + search_value.gsub("\n", "$[ln];"))
     end
-	
+
+	# Is Regex Replace
+	def set_format_cache_value(cache_key, regex, replacement)
+	  add("CF", cache_key + GS + regex + GS + replacement.gsub("\n", "$[ln];"))
+	end
+
+	# Operator: +, -, *, /, %, //, **
+	def set_arithmetic_cache_value(cache_key, operator, value)
+	  add("CM", cache_key + GS + operator + GS + value.to_s)
+	end
+
+	# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	def set_text_operation_cache_value(cache_key, operation, value1, value2)
+	  add("CT", cache_key + GS + operation + GS + value1.to_s + GS + value2.to_s)
+	end
+
     # Call
     def load_url(input_place, url)
       add("lu" + input_place, url)
@@ -1369,18 +1427,18 @@ module WebFormsCore
     end
 
     # Pre Runner
-    def assign_delay(mili_second, index = -1)
+    def assign_delay(milli_second, index = -1)
       current_line = get_line_by_index(index)
       return if current_line.nil? || current_line.empty?
 
       parts = current_line.split('=', 2)
-      new_name = ":" + mili_second.to_s + ")" + parts[0]
+      new_name = ":" + milli_second.to_s + ")" + parts[0]
       new_value = parts.length > 1 ? parts[1] : ""
 
       update_line_by_index(index, new_name, new_value)
     end
 
-    def assign_delay_change(mili_second, index = -1)
+    def assign_delay_change(milli_second, index = -1)
       current_line = get_line_by_index(index)
       return if current_line.nil? || current_line.empty?
 
@@ -1392,24 +1450,24 @@ module WebFormsCore
         current_name = current_name[(closing_bracket + 1)..-1]
       end
 
-      new_name = ":" + mili_second.to_s + ")" + current_name
+      new_name = ":" + milli_second.to_s + ")" + current_name
       new_value = parts.length > 1 ? parts[1] : ""
 
       update_line_by_index(index, new_name, new_value)
     end
 
-    def assign_interval(mili_second, id = nil, index = -1)
+    def assign_interval(milli_second, id = nil, index = -1)
       current_line = get_line_by_index(index)
       return if current_line.nil? || current_line.empty?
 
       parts = current_line.split('=', 2)
-      new_name = "(" + mili_second.to_s + (!id.nil? && !id.empty? ? "|" + id : "") + ")" + parts[0]
+      new_name = "(" + milli_second.to_s + (!id.nil? && !id.empty? ? "|" + id : "") + ")" + parts[0]
       new_value = parts.length > 1 ? parts[1] : ""
 
       update_line_by_index(index, new_name, new_value)
     end
 
-    def assign_interval_change(mili_second, id = nil, index = -1)
+    def assign_interval_change(milli_second, id = nil, index = -1)
       current_line = get_line_by_index(index)
       return if current_line.nil? || current_line.empty?
 
@@ -1421,7 +1479,7 @@ module WebFormsCore
         current_name = current_name[(closing_bracket + 1)..-1]
       end
 
-      new_name = "(" + mili_second.to_s + (!id.nil? && !id.empty? ? "|" + id : "") + ")" + current_name
+      new_name = "(" + milli_second.to_s + (!id.nil? && !id.empty? ? "|" + id : "") + ")" + current_name
       new_value = parts.length > 1 ? parts[1] : ""
 
       update_line_by_index(index, new_name, new_value)
@@ -1646,13 +1704,11 @@ module WebFormsCore
       self
     end
 
-    # 'break' is a reserved keyword in Ruby, so 'wf_break' is used to preserve API intent without syntax errors.
-    def wf_break
+    def break_
       add(";")
     end
 
-    # 'else' is a reserved keyword in Ruby, so 'wf_else' is used to preserve API intent without syntax errors.
-    def wf_else
+    def else_
       add("}e")
       self
     end
@@ -1665,8 +1721,9 @@ module WebFormsCore
       add("}")
     end
 
+	# High-Level Methods
     # Used Then In Condition And Loop Methods
-    def then_form(new_form = nil, &block)
+    def then_(new_form = nil, &block)
       if block_given?
         new_form = WebForms.new
         yield new_form
@@ -1687,45 +1744,108 @@ module WebFormsCore
       self
     end
 
-    def repeat_form(new_form = nil, repeat = 1, index = nil, &block)
-      if block_given?
-        temp_form = WebForms.new
-        yield temp_form
-        return repeat_form(temp_form, repeat, index)
-      end
+	def repeat(new_form = nil, repeat_count = 1, index = nil, &block)
+	  if block_given?
+		temp_form = WebForms.new
+		yield temp_form
+		return repeat(temp_form, repeat_count, index)
+	  end
 
-      return self if new_form.nil?
+	  return self if new_form.nil?
 
-      if !index.nil?
-        go_to(index)
-        start_index(index)
-      end
+	  if index.nil?
+		body_data = new_form.get_web_forms_data
+		return self if body_data.nil? || body_data.empty?
 
-      body_data = new_form.get_web_forms_data
+		start_line = body_data.split("\n", -1).length * -1
+		append_form(new_form)
+		go_to(start_line, repeat_count - 1)
+	  else
+		go_to(index)
+		start_index(index)
 
-      return self if body_data.nil? || body_data.empty?
+		body_data = new_form.get_web_forms_data
+		return self if body_data.nil? || body_data.empty?
 
-      if index.nil?
-        start_line = body_data.split("\n", -1).length * -1
-        append_form(new_form)
-        go_to(start_line, repeat - 1)
-      else
-        append_form(new_form)
-        go_to(index, repeat - 1)
-      end
+		append_form(new_form)
 
-      self
-    end
+		if index.empty?
+		  index_number = -1
+		  get_web_forms_data.split("\n").each do |x|
+			index_number += 1 if x.start_with?("#")
+		  end
+		  go_to(index_number.to_s, repeat_count - 1)
+		else
+		  go_to(index, repeat_count - 1)
+		end
+	  end
+
+	  self
+	end
+
+	def isole(new_form = nil, input_place = nil, &block)
+	  if block_given?
+		temp_form = WebForms.new
+		yield temp_form
+		return isole(temp_form, input_place)
+	  end
+
+	  return self if new_form.nil?
+
+	  body_data = new_form.get_web_forms_data
+	  return self if body_data.nil? || body_data.empty?
+
+	  form = WebForms.new
+	  form.start_transient_dom(input_place)
+
+	  append_form(form)
+	  new_form.end_transient_dom
+	  append_form(new_form)
+
+	  self
+	end
+
+    # The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+    # This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+	def render(new_form = nil, input_place = nil, key = "", permanent = false, &block)
+	  if block_given?
+		temp_form = WebForms.new
+		yield temp_form
+		return render(temp_form, input_place, key, permanent)
+	  end
+
+	  return self if new_form.nil?
+
+	  body_data = new_form.get_web_forms_data
+	  return self if body_data.nil? || body_data.empty?
+
+	  key = input_place if key.nil? || key.empty?
+
+	  form = WebForms.new
+
+	  form.exist(permanent ? Fetch.cache(key) : Fetch.save(key))
+		form.rollback(input_place, key, permanent)
+	  form.else_
+		form.snapshot(input_place, key, permanent)
+
+	  form.start_transient_dom(input_place)
+
+	  append_form(form)
+	  new_form.end_transient_dom
+	  append_form(new_form)
+
+	  self
+	end
 
     # Async
     # It Supports Brackets and Then
-    def async_action
+    def async_
       add("{(a)")
       self
     end
 
-    def delay(mili_second)
-      add("De", mili_second.to_s)
+    def delay(milli_second)
+      add("De", milli_second.to_s)
     end
 
     # Option
@@ -2104,7 +2224,7 @@ module WebFormsCore
     end
 
     # MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-    def self.wasm_method(wasm_language, wasm_url, method_name, args = nil, key = ".")
+    def self.wasm_method(wasm_language, wasm_url, method_name, args = nil)
       return_value = "@wA" + wasm_language + RS + wasm_url + RS + method_name
       if !args.nil? && args.is_a?(Array)
         return_value += (args.length > 0) ? RS + args.join(US) : ""
@@ -2166,7 +2286,7 @@ module WebFormsCore
       return_value
     end
 
-	# Data
+	# Date
 	def self.date_year = "@dy"
 	# Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1
 	def self.date_month = "@dm"
@@ -2262,7 +2382,11 @@ module WebFormsCore
       "@$V" + input_place
     end
 
-    # Save
+	def self.get_tag_hash(input_place)
+	  "@$H" + input_place
+	end
+
+    # Save and Cache
     def self.has_hash(hash_val)
       "@HH" + hash_val
     end
@@ -2431,13 +2555,10 @@ module WebFormsCore
   end
   
   class WasmLanguage
-    # The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
     def self.c = "c"
     def self.cpp = "c"
     def self.rust = "rust"
     def self.c_sharp = "csharp"
-    # .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-    def self.c_sharp_mediator = "csharp-m"
     def self.go = "go"
     def self.java = "java"
     def self.assembly_script = "as"
@@ -2633,7 +2754,7 @@ module WebFormsCore
         return value
       end
 
-      self + "?" + value.gsub("|", "$[vb];").gsub("?", "$[qu];")
+      self + "?" + value.gsub("|", "$[vb];").gsub("?", "$[qu];").gsub("=", "$[eq];")
     end
 
     def append_fetch_replace(search_value, value)
