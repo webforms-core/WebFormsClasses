@@ -338,6 +338,8 @@ CLI
 npm install webformscore-ts
 ```
 
+After installing the package, open the module directory and manually add the `webforms.ts` file to the `webformscore-ts` directory within the project's `src` folder.
+
 ---
 
 ## Other programming languages 
