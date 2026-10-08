@@ -41,7 +41,7 @@ When this module is executed, a "FrontBack" method is added to the "Button1" but
 TypeScript module ("/script/module/main.ts")
 
 ```ts
-import { WebForms, HtmlEvent, Fetch } from "./WebForms.ts";
+import { WebForms, HtmlEvent, Fetch } from "./webforms.ts";
 
 export function PageLoad(evt)
 {
