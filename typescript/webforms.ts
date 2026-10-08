@@ -1,5 +1,5 @@
-// webforms.ts 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// webforms.ts 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 const GS = String.fromCharCode(29);
 const US = String.fromCharCode(31);
@@ -192,6 +192,9 @@ export class WebForms {
         const finalIndex = typeof index === 'number' ? index.toString() : index;
         this.add('ki' + inputPlace, finalIndex + GS + (checked ? '1' : '0'));
     }
+	public setCustomValidity(inputPlace: string, text: string): void {
+		this.add('cv' + inputPlace, text.split('\n').join('$[ln];'));
+	}
 
     // Insert
     // Creates the Data only if it does not exist; otherwise, does nothing.
@@ -233,12 +236,29 @@ export class WebForms {
     public delete(inputPlace: string): void { this.add('de' + inputPlace); }
     public deleteParent(inputPlace: string): void { this.add('dp' + inputPlace); }
 
-    // Tag
+    // Tag Transformation
     public swapTag(inputPlace: string, outputPlace: string): void { this.add('sp' + inputPlace, outputPlace); }
-    public setReflection(inputPlace: string, tag: string): void { this.add('sR' + inputPlace, tag); }
-    public setReflectionByOutputPlace(inputPlace: string, outputPlace: string): void { this.add('iR' + inputPlace, outputPlace); }
+    public setReflect(inputPlace: string, tag: string): void { this.add('sR' + inputPlace, tag); }
+    public setReflectByOutputPlace(inputPlace: string, outputPlace: string): void { this.add('iR' + inputPlace, outputPlace); }
     public setMorph(inputPlace: string, tag: string): void { this.add('sM' + inputPlace, tag); }
     public setMorphByOutputPlace(inputPlace: string, outputPlace: string): void { this.add('iM' + inputPlace, outputPlace); }
+	// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// InputPlace: Only One Tag 
+	public snapshot(inputPlace: string, key: string = '', permanent: boolean = false): void {
+		this.add(
+			'rS' + inputPlace,
+			((key !== null && key !== undefined && key !== '') ? key : inputPlace) +
+			(permanent ? GS + '1' : '')
+		);
+	}
+	public rollback(inputPlace: string, key: string = '', permanent: boolean = false): void {
+		this.add(
+			'rB' + inputPlace,
+			((key !== null && key !== undefined && key !== '') ? key : inputPlace) +
+			(permanent ? GS + '1' : '')
+		);
+	}
+
 
     // Browser
     public changeUrl(url: string): void { this.add('cu', url); }
@@ -586,6 +606,9 @@ export class WebForms {
 
     // Debug
     public createDebugger(pause: boolean = false): void { this.add('Dc', pause ? '1' : '0'); }
+	public try(): void { this.add('tr'); }
+	public catch(): void { this.add('ca'); }
+	public comment(text: string): void { this.add('//', text); }
 
     // Service Worker
     // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -651,6 +674,10 @@ export class WebForms {
             this.add('DS');
     }
     public deleteAllState(): void { this.add('DS', '*'); }
+	public lockQueue(millisecond: string | number): void {
+		const finalMillisecond = typeof millisecond === 'number' ? millisecond.toString() : millisecond;
+		this.add('lq', finalMillisecond);
+	}
 
     // Cookie
     public setCookie(key: string, value: string, seconds: string | number, path: string | null = null): void {
@@ -700,6 +727,23 @@ export class WebForms {
     public replaceSaveValue(cacheKey: string, searchValue: string, value: string): void {
         this.add('SR', cacheKey + GS + value.split('\n').join('$[ln];') + GS + searchValue.split('\n').join('$[ln];'));
     }
+	// Is Regex Replace
+	public setFormatSaveValue(cacheKey: string, regex: string, replacement: string): void {
+		this.add('SF', cacheKey + GS + regex + GS + replacement.split('\n').join('$[ln];'));
+	}
+
+	// Operator: +, -, *, /, %, //, **
+	public setArithmeticSaveValue(cacheKey: string, operator: string, value: string | number): void {
+		const finalValue = typeof value === 'number' ? value.toString() : value;
+		this.add('SM', cacheKey + GS + operator + GS + finalValue);
+	}
+
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public setTextOperationSaveValue(cacheKey: string, operation: string, value1: string | number, value2: string | number): void {
+		const finalValue1 = typeof value1 === 'number' ? value1.toString() : value1;
+		const finalValue2 = typeof value2 === 'number' ? value2.toString() : value2;
+		this.add('ST', cacheKey + GS + operation + GS + finalValue1 + GS + finalValue2);
+	}
 
     // Cache
     public cacheId(inputPlace: string, key: string = '.'): void { this.add('@ci' + inputPlace, key); }
@@ -751,6 +795,23 @@ export class WebForms {
     public replaceCacheValue(cacheKey: string, searchValue: string, value: string): void {
         this.add('CR', cacheKey + GS + value.split('\n').join('$[ln];') + GS + searchValue.split('\n').join('$[ln];'));
     }
+	// Is Regex Replace
+	public setFormatCacheValue(cacheKey: string, regex: string, replacement: string): void {
+		this.add('CF', cacheKey + GS + regex + GS + replacement.split('\n').join('$[ln];'));
+	}
+
+	// Operator: +, -, *, /, %, //, **
+	public setArithmeticCacheValue(cacheKey: string, operator: string, value: string | number): void {
+		const finalValue = typeof value === 'number' ? value.toString() : value;
+		this.add('CM', cacheKey + GS + operator + GS + finalValue);
+	}
+
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public setTextOperationCacheValue(cacheKey: string, operation: string, value1: string | number, value2: string | number): void {
+		const finalValue1 = typeof value1 === 'number' ? value1.toString() : value1;
+		const finalValue2 = typeof value2 === 'number' ? value2.toString() : value2;
+		this.add('CT', cacheKey + GS + operation + GS + finalValue1 + GS + finalValue2);
+	}
 
     // Call
     public loadUrl(inputPlace: string, url: string): void { this.add('lu' + inputPlace, url); }
@@ -840,7 +901,7 @@ export class WebForms {
     }
 
     // Pre Runner
-    public assignDelay(miliSecond: number, index: number = -1): void {
+    public assignDelay(milliSecond: number, index: number = -1): void {
         const currentLine = this.getLineByIndex(index);
         if (currentLine === null || currentLine === undefined || currentLine === '')
             return;
@@ -848,13 +909,13 @@ export class WebForms {
         const parts = currentLine.split('=');
         const parts0 = parts[0];
         const parts1 = parts.length > 1 ? currentLine.substring(parts0.length + 1) : '';
-        const newName = ':' + miliSecond + ')' + parts0;
+        const newName = ':' + milliSecond + ')' + parts0;
         const newValue = parts1;
 
         this.updateLineByIndex(index, newName, newValue);
     }
 
-    public assignDelayChange(miliSecond: number, index: number = -1): void {
+    public assignDelayChange(milliSecond: number, index: number = -1): void {
         const currentLine = this.getLineByIndex(index);
         if (currentLine === null || currentLine === undefined || currentLine === '')
             return;
@@ -868,12 +929,12 @@ export class WebForms {
             currentName = currentName.substring(closingBracket + 1);
         }
 
-        const newName = ':' + miliSecond + ')' + currentName;
+        const newName = ':' + milliSecond + ')' + currentName;
 
         this.updateLineByIndex(index, newName, newValue);
     }
 
-    public assignInterval(miliSecond: number, id: string | null = null, index: number = -1): void {
+    public assignInterval(milliSecond: number, id: string | null = null, index: number = -1): void {
         const currentLine = this.getLineByIndex(index);
         if (currentLine === null || currentLine === undefined || currentLine === '')
             return;
@@ -881,12 +942,12 @@ export class WebForms {
         const parts = currentLine.split('=');
         const parts0 = parts[0];
         const newValue = parts.length > 1 ? currentLine.substring(parts0.length + 1) : '';
-        const newName = '(' + miliSecond + (id !== null && id !== undefined && id !== '' ? '|' + id : '') + ')' + parts0;
+        const newName = '(' + milliSecond + (id !== null && id !== undefined && id !== '' ? '|' + id : '') + ')' + parts0;
 
         this.updateLineByIndex(index, newName, newValue);
     }
 
-    public assignIntervalChange(miliSecond: number, id: string | null = null, index: number = -1): void {
+    public assignIntervalChange(milliSecond: number, id: string | null = null, index: number = -1): void {
         const currentLine = this.getLineByIndex(index);
         if (currentLine === null || currentLine === undefined || currentLine === '')
             return;
@@ -900,7 +961,7 @@ export class WebForms {
             currentName = currentName.substring(closingBracket + 1);
         }
 
-        const newName = '(' + miliSecond + (id !== null && id !== undefined && id !== '' ? '|' + id : '') + ')' + currentName;
+        const newName = '(' + milliSecond + (id !== null && id !== undefined && id !== '' ? '|' + id : '') + ')' + currentName;
 
         this.updateLineByIndex(index, newName, newValue);
     }
@@ -1096,6 +1157,8 @@ export class WebForms {
     }
     public startBracket(): void { this.add('{'); }
     public endBracket(): void { this.add('}'); }
+	
+	// High-Level Methods
     // Used Then In Condition And Loop Methods
     public then(newForm: WebForms): WebForms;
     public then(configure: (form: WebForms) => void): WebForms;
@@ -1174,6 +1237,77 @@ export class WebForms {
 
         return this;
     }
+	
+	public isole(newForm: WebForms, inputPlace: string): WebForms;
+	public isole(configure: (form: WebForms) => void, inputPlace: string): WebForms;
+	public isole(newFormOrConfigure: WebForms | ((form: WebForms) => void), inputPlace: string): WebForms {
+		let newForm: WebForms;
+
+		if (typeof newFormOrConfigure === 'function') {
+			newForm = new WebForms();
+			newFormOrConfigure(newForm);
+		} else {
+			newForm = newFormOrConfigure;
+		}
+
+		if (newForm == null)
+			return this;
+
+		const bodyData = newForm.getWebFormsData();
+
+		if (bodyData === null || bodyData === undefined || bodyData === '')
+			return this;
+
+		const form = new WebForms();
+		form.startTransientDOM(inputPlace);
+
+		this.appendForm(form);
+		newForm.endTransientDOM();
+		this.appendForm(newForm);
+
+		return this;
+	}
+
+	// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+	public render(newForm: WebForms, inputPlace: string, key?: string, permanent?: boolean): WebForms;
+	public render(configure: (form: WebForms) => void, inputPlace: string, key?: string, permanent?: boolean): WebForms;
+	public render(newFormOrConfigure: WebForms | ((form: WebForms) => void), inputPlace: string, key: string = '', permanent: boolean = false): WebForms {
+		let newForm: WebForms;
+
+		if (typeof newFormOrConfigure === 'function') {
+			newForm = new WebForms();
+			newFormOrConfigure(newForm);
+		} else {
+			newForm = newFormOrConfigure;
+		}
+
+		if (newForm == null)
+			return this;
+
+		const bodyData = newForm.getWebFormsData();
+
+		if (bodyData === null || bodyData === undefined || bodyData === '')
+			return this;
+
+		if (key === null || key === undefined || key === '')
+			key = inputPlace;
+
+		const form = new WebForms();
+
+		form.exist(permanent ? Fetch.cache(key) : Fetch.save(key));
+			form.rollback(inputPlace, key, permanent);
+		form.else();
+			form.snapshot(inputPlace, key, permanent);
+
+		form.startTransientDOM(inputPlace);
+
+		this.appendForm(form);
+		newForm.endTransientDOM();
+		this.appendForm(newForm);
+
+		return this;
+	}
 
     // Async
     // It Supports Brackets and Then
@@ -1181,8 +1315,8 @@ export class WebForms {
         this.add('{(a)');
         return this;
     }
-    public delay(miliSecond: string | number): void {
-        const ms = typeof miliSecond === 'number' ? miliSecond.toString() : miliSecond;
+    public delay(milliSecond: string | number): void {
+        const ms = typeof milliSecond === 'number' ? milliSecond.toString() : milliSecond;
         this.add('De', ms);
     }
 
@@ -1503,15 +1637,15 @@ export class Fetch {
         return returnValue;
     }
 
-    // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-    public static wasmMethod(wasmLanguage: string, wasmUrl: string, methodName: string, args: (string | number | boolean)[] | null = null, key: string = '.'): string {
-        let returnValue = '@wA' + wasmLanguage + this.RS + wasmUrl + this.RS + methodName;
+	// MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
+	public static wasmMethod(wasmLanguage: string, wasmUrl: string, methodName: string, args: (string | number | boolean)[] | null = null): string {
+		let returnValue = '@wA' + wasmLanguage + this.RS + wasmUrl + this.RS + methodName;
 
-        if (args !== null)
-            returnValue += args.length > 0 ? this.RS + args.join(this.US) : '';
+		if (args !== null)
+			returnValue += args.length > 0 ? this.RS + args.join(this.US) : '';
 
-        return returnValue;
-    }
+		return returnValue;
+	}
 
     public static script(scriptText: string): string {
         return '@_' + scriptText.split('\n').join('$[ln];');
@@ -1553,7 +1687,7 @@ export class Fetch {
         return returnValue;
     }
 
-    // Data
+    // Date
     public static readonly DateYear = '@dy';
     // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
     public static readonly DateMonth = '@dm';
@@ -1591,8 +1725,9 @@ export class Fetch {
     public static getTextAlign(inputPlace: string): string { return '@$T' + inputPlace; }
     public static getNodeLength(inputPlace: string): string { return '@$L' + inputPlace; }
     public static getIsVisible(inputPlace: string): string { return '@$V' + inputPlace; }
+	public static getTagHash(inputPlace: string): string { return '@$H' + inputPlace; }
 
-    // Save
+    // Save and Cache
     public static hasHash(hash: string): string { return '@HH' + hash; }
     public static cookie(key: string): string { return '@co' + key; }
     public static save(key: string = '.'): string { return '@cs' + key; }
@@ -1701,13 +1836,10 @@ export class Fetch {
 }
 
 export class WasmLanguage {
-    // The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
     public static readonly C = 'c';
     public static readonly CPP = 'c';
     public static readonly Rust = 'rust';
     public static readonly CSharp = 'csharp';
-    // .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-    public static readonly CSharpMediator = 'csharp-m';
     public static readonly GO = 'go';
     public static readonly JAVA = 'java';
     public static readonly AssemblyScript = 'as';
@@ -1911,7 +2043,7 @@ String.prototype.criteria = function (this: string, value: string): string {
     if (this.length < 1)
         return value;
 
-    return this + '?' + value.split('|').join('$[vb];').split('?').join('$[qu];');
+    return this + '?' + value.split('|').join('$[vb];').split('?').join('$[qu];').split('=').join('$[eq];');
 };
 
 String.prototype.appendFetchReplace = function (this: string, searchValue: string, value: string): string {
