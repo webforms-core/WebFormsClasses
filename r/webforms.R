@@ -1,5 +1,5 @@
-# webforms.R 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-# Compatible with WebFormsJS version 2.1
+# webforms.R 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+# Compatible with WebFormsJS version 2.2
 
 GS <- intToUtf8(29)
 US <- intToUtf8(31)
@@ -206,6 +206,10 @@ WebForms <- R6::R6Class("WebForms",
       final_index <- if (is.numeric(index)) as.character(index) else index
       self$add(paste0("ki", inputPlace), paste0(final_index, GS, if (checked) "1" else "0"))
     },
+	set_custom_validity = function(inputPlace, text) {
+	  final_text <- gsub("\n", "$[ln];", text, fixed = TRUE)
+	  self$add(paste0("cv", inputPlace), final_text)
+	},
 
     # Insert
     # Creates the Data only if it does not exist; otherwise, does nothing.
@@ -254,12 +258,24 @@ WebForms <- R6::R6Class("WebForms",
     delete = function(inputPlace) self$add(paste0("de", inputPlace)),
     delete_parent = function(inputPlace) self$add(paste0("dp", inputPlace)),
 
-    # Tag
+    # Tag Transformation
     swap_tag = function(inputPlace, outputPlace) self$add(paste0("sp", inputPlace), outputPlace),
-    set_reflection = function(inputPlace, tag) self$add(paste0("sR", inputPlace), tag),
-    set_reflection_by_output_place = function(inputPlace, outputPlace) self$add(paste0("iR", inputPlace), outputPlace),
+    set_reflect = function(inputPlace, tag) self$add(paste0("sR", inputPlace), tag),
+    set_reflect_by_output_place = function(inputPlace, outputPlace) self$add(paste0("iR", inputPlace), outputPlace),
     set_morph = function(inputPlace, tag) self$add(paste0("sM", inputPlace), tag),
     set_morph_by_output_place = function(inputPlace, outputPlace) self$add(paste0("iM", inputPlace), outputPlace),
+	# The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	# InputPlace: Only One Tag
+	snapshot = function(inputPlace, key = "", permanent = FALSE) {
+	  key_part <- if (!is.null(key) && nchar(key) > 0) key else inputPlace
+	  perm_part <- if (permanent) paste0(GS, "1") else ""
+	  self$add(paste0("rS", inputPlace), paste0(key_part, perm_part))
+	},
+	rollback = function(inputPlace, key = "", permanent = FALSE) {
+	  key_part <- if (!is.null(key) && nchar(key) > 0) key else inputPlace
+	  perm_part <- if (permanent) paste0(GS, "1") else ""
+	  self$add(paste0("rB", inputPlace), paste0(key_part, perm_part))
+	},
 
     # Browser
     change_url = function(url) self$add("cu", url),
@@ -1263,6 +1279,9 @@ WebForms <- R6::R6Class("WebForms",
     create_debugger = function(pause = FALSE) {
       self$add("Dc", if (pause) "1" else "0")
     },
+	try = function() self$add("tr"),
+	catch = function() self$add("ca"),
+	comment = function(text) self$add("//", text),
 
     # Service Worker
     # To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -1353,6 +1372,10 @@ WebForms <- R6::R6Class("WebForms",
     delete_all_state = function() {
       self$add("DS", "*")
     },
+	lock_queue = function(millisecond) {
+	  final_ms <- if (is.numeric(millisecond)) as.character(millisecond) else millisecond
+	  self$add("lq", final_ms)
+	},
 
     # Cookie
     set_cookie = function(key, value, seconds, path = NULL) {
@@ -1402,6 +1425,24 @@ WebForms <- R6::R6Class("WebForms",
     replace_save_value = function(cacheKey, searchValue, value) {
       self$add("SR", paste0(cacheKey, GS, gsub("\n", "$[ln];", value, fixed = TRUE), GS, gsub("\n", "$[ln];", searchValue, fixed = TRUE)))
     },
+	# Is Regex Replace
+	set_format_save_value = function(cacheKey, regex, replacement) {
+	  final_replacement <- gsub("\n", "$[ln];", replacement, fixed = TRUE)
+	  self$add("SF", paste0(cacheKey, GS, regex, GS, final_replacement))
+	},
+
+	# Operator: +, -, *, /, %, //, **
+	set_arithmetic_save_value = function(cacheKey, operator, value) {
+	  final_value <- if (is.numeric(value)) as.character(value) else value
+	  self$add("SM", paste0(cacheKey, GS, operator, GS, final_value))
+	},
+
+	# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	set_text_operation_save_value = function(cacheKey, operation, value1, value2) {
+	  final_value1 <- if (is.numeric(value1)) as.character(value1) else value1
+	  final_value2 <- if (is.numeric(value2)) as.character(value2) else value2
+	  self$add("ST", paste0(cacheKey, GS, operation, GS, final_value1, GS, final_value2))
+	},
 	
     # Cache
     cache_id = function(inputPlace, key = ".") self$add(paste0("@ci", inputPlace), key),
@@ -1451,6 +1492,24 @@ WebForms <- R6::R6Class("WebForms",
     replace_cache_value = function(cacheKey, searchValue, value) {
       self$add("CR", paste0(cacheKey, GS, gsub("\n", "$[ln];", value, fixed = TRUE), GS, gsub("\n", "$[ln];", searchValue, fixed = TRUE)))
     },
+	# Is Regex Replace
+	set_format_cache_value = function(cacheKey, regex, replacement) {
+	  final_replacement <- gsub("\n", "$[ln];", replacement, fixed = TRUE)
+	  self$add("CF", paste0(cacheKey, GS, regex, GS, final_replacement))
+	},
+
+	# Operator: +, -, *, /, %, //, **
+	set_arithmetic_cache_value = function(cacheKey, operator, value) {
+	  final_value <- if (is.numeric(value)) as.character(value) else value
+	  self$add("CM", paste0(cacheKey, GS, operator, GS, final_value))
+	},
+
+	# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	set_text_operation_cache_value = function(cacheKey, operation, value1, value2) {
+	  final_value1 <- if (is.numeric(value1)) as.character(value1) else value1
+	  final_value2 <- if (is.numeric(value2)) as.character(value2) else value2
+	  self$add("CT", paste0(cacheKey, GS, operation, GS, final_value1, GS, final_value2))
+	},
 
     # Call
     load_url = function(inputPlace, url) self$add(paste0("lu", inputPlace), url),
@@ -1572,18 +1631,18 @@ WebForms <- R6::R6Class("WebForms",
     },
 
     # Pre Runner
-    assign_delay = function(miliSecond, index = -1) {
+    assign_delay = function(milliSecond, index = -1) {
       currentLine <- self$get_line_by_index(index)
       if (is.null(currentLine) || nchar(currentLine) == 0) {
         return(invisible(NULL))
       }
       parts <- strsplit(currentLine, "=", fixed = TRUE)[[1]]
-      newName <- paste0(":", miliSecond, ")", parts[1])
+      newName <- paste0(":", milliSecond, ")", parts[1])
       newValue <- if (length(parts) > 1) parts[2] else ""
       self$update_line_by_index(index, newName, newValue)
       invisible(NULL)
     },
-    assign_delay_change = function(miliSecond, index = -1) {
+    assign_delay_change = function(milliSecond, index = -1) {
       currentLine <- self$get_line_by_index(index)
       if (is.null(currentLine) || nchar(currentLine) == 0) {
         return(invisible(NULL))
@@ -1594,24 +1653,24 @@ WebForms <- R6::R6Class("WebForms",
         closingBracket <- regexpr(")", currentName, fixed = TRUE)[1]
         currentName <- substr(currentName, closingBracket + 1, nchar(currentName))
       }
-      newName <- paste0(":", miliSecond, ")", currentName)
+      newName <- paste0(":", milliSecond, ")", currentName)
       newValue <- if (length(parts) > 1) parts[2] else ""
       self$update_line_by_index(index, newName, newValue)
       invisible(NULL)
     },
-    assign_interval = function(miliSecond, id = NULL, index = -1) {
+    assign_interval = function(milliSecond, id = NULL, index = -1) {
       currentLine <- self$get_line_by_index(index)
       if (is.null(currentLine) || nchar(currentLine) == 0) {
         return(invisible(NULL))
       }
       parts <- strsplit(currentLine, "=", fixed = TRUE)[[1]]
       id_part <- if (!is.null(id) && nchar(id) > 0) paste0("|", id) else ""
-      newName <- paste0("(", miliSecond, id_part, ")", parts[1])
+      newName <- paste0("(", milliSecond, id_part, ")", parts[1])
       newValue <- if (length(parts) > 1) parts[2] else ""
       self$update_line_by_index(index, newName, newValue)
       invisible(NULL)
     },
-    assign_interval_change = function(miliSecond, id = NULL, index = -1) {
+    assign_interval_change = function(milliSecond, id = NULL, index = -1) {
       currentLine <- self$get_line_by_index(index)
       if (is.null(currentLine) || nchar(currentLine) == 0) {
         return(invisible(NULL))
@@ -1623,7 +1682,7 @@ WebForms <- R6::R6Class("WebForms",
         currentName <- substr(currentName, closingBracket + 1, nchar(currentName))
       }
       id_part <- if (!is.null(id) && nchar(id) > 0) paste0("|", id) else ""
-      newName <- paste0("(", miliSecond, id_part, ")", currentName)
+      newName <- paste0("(", milliSecond, id_part, ")", currentName)
       newValue <- if (length(parts) > 1) parts[2] else ""
       self$update_line_by_index(index, newName, newValue)
       invisible(NULL)
@@ -1921,6 +1980,8 @@ WebForms <- R6::R6Class("WebForms",
     end_bracket = function() {
       self$add("}")
     },
+	
+	# High-Level Methods
     # Used Then In Condition And Loop Methods
 	then = function(newForm_or_configure) {
 	  if (is.function(newForm_or_configure)) {
@@ -2023,14 +2084,82 @@ WebForms <- R6::R6Class("WebForms",
 	  return(self)
 	},
 
+	# Isole
+	isole = function(new_form_or_configure, input_place) {
+	  if (is.function(new_form_or_configure)) {
+		new_form <- WebForms$new()
+		new_form_or_configure(new_form)
+	  } else {
+		new_form <- new_form_or_configure
+	  }
+
+	  if (is.null(new_form)) {
+		return(self)
+	  }
+
+	  body_data <- new_form$get_web_forms_data()
+
+	  if (is.null(body_data) || nchar(body_data) == 0) {
+		return(self)
+	  }
+
+	  form <- WebForms$new()
+	  form$start_transient_dom(input_place)
+
+	  self$append_form(form)
+	  new_form$end_transient_dom()
+	  self$append_form(new_form)
+
+	  return(self)
+	},
+
+	# Render
+	render = function(new_form_or_configure, input_place, key = "", permanent = FALSE) {
+	  if (is.function(new_form_or_configure)) {
+		new_form <- WebForms$new()
+		new_form_or_configure(new_form)
+	  } else {
+		new_form <- new_form_or_configure
+	  }
+
+	  if (is.null(new_form)) {
+		return(self)
+	  }
+
+	  body_data <- new_form$get_web_forms_data()
+
+	  if (is.null(body_data) || nchar(body_data) == 0) {
+		return(self)
+	  }
+
+	  if (is.null(key) || nchar(key) == 0) {
+		key <- input_place
+	  }
+
+	  form <- WebForms$new()
+
+	  form$exist(if (permanent) Fetch$cache(key) else Fetch$save(key))
+	  form$rollback(input_place, key, permanent)
+	  form$else_()
+	  form$snapshot(input_place, key, permanent)
+
+	  form$start_transient_dom(input_place)
+
+	  self$append_form(form)
+	  new_form$end_transient_dom()
+	  self$append_form(new_form)
+
+	  return(self)
+	},
+
     # Async
     # It Supports Brackets and Then
     async = function() {
       self$add("{(a)")
       return(self)
     },
-    delay = function(miliSecond) {
-      ms_str <- if (is.numeric(miliSecond)) as.character(miliSecond) else miliSecond
+    delay = function(milliSecond) {
+      ms_str <- if (is.numeric(milliSecond)) as.character(milliSecond) else milliSecond
       self$add("De", ms_str)
     },
 
@@ -2265,53 +2394,62 @@ Security <- R6::R6Class("Security",
 
 # WebForms Place Criteria (WPC) DSL
 InputPlace <- list(
-  Document = ",",
-  Window = "`",
+  document = ",",
+  window = "`",
   # When Calling TransientDOM, Using Root will Result in the Selection of the Transient Tag.
-  Root = "~",
-  HTML = ".",
-  Head = "^",
-  ScreenOrientation = "%",
-  All = "*",
-  Parent = "/",
-  Current = "$",
-  Target = "!",
-  Upper = "-",
-  
-  Id = function(id) id,
-  Name = function(name, index = NULL) {
+  root = "~",
+  html = ".",
+  head = "^",
+  screen_orientation = "%",
+  all = "*",
+  parent = "/",
+  current = "$",
+  target = "!",
+  upper = "-",
+
+  id = function(id) id,
+
+  name = function(name, index = NULL) {
     if (is.null(index)) {
       return(paste0("(", name, ")"))
     } else {
       return(paste0("(", name, ")", index))
     }
   },
-  AllNames = function(name) paste0("(", name, ")*"),
-  Tag = function(tag, index = NULL) {
+
+  all_names = function(name) paste0("(", name, ")*"),
+
+  tag = function(tag, index = NULL) {
     if (is.null(index)) {
       return(paste0("<", tag, ">"))
     } else {
       return(paste0("<", tag, ">", index))
     }
   },
-  AllTags = function(tag) paste0("<", tag, ">*"),
-  Child = function(index = NULL) {
+
+  all_tags = function(tag) paste0("<", tag, ">*"),
+
+  child = function(index = NULL) {
     if (is.null(index)) {
       return("<>")
     } else {
       return(paste0("<>", index))
     }
   },
-  AllChild = function() "<>*",
-  Class = function(class_name, index = NULL) {
+
+  all_child = function() "<>*",
+
+  class = function(class_name, index = NULL) {
     if (is.null(index)) {
       return(paste0("{", class_name, "}"))
     } else {
       return(paste0("{", class_name, "}", index))
     }
   },
-  AllClasses = function(class_name) paste0("{", class_name, "}*"),
-  Attribute = function(name, value = NULL, index = NULL, operator = NUL) {
+
+  all_classes = function(class_name) paste0("{", class_name, "}*"),
+
+  attribute = function(name, value = NULL, index = NULL, operator = NUL) {
     if (is.null(value)) {
       if (is.null(index)) {
         return(paste0('"', name, '"'))
@@ -2328,7 +2466,8 @@ InputPlace <- list(
       }
     }
   },
-  AllAttributes = function(name, value = NULL, operator = NUL) {
+
+  all_attributes = function(name, value = NULL, operator = NUL) {
     if (is.null(value)) {
       return(paste0('"', name, '"*'))
     } else {
@@ -2336,13 +2475,15 @@ InputPlace <- list(
       return(paste0('"', name, op_str, "'", value, '"*'))
     }
   },
-  Query = function(query) {
+
+  query = function(query) {
     q <- gsub("=", "$[eq];", query, fixed = TRUE)
     q <- gsub("|", "$[vb];", q, fixed = TRUE)
     q <- gsub("?", "$[qu];", q, fixed = TRUE)
     return(paste0("*", q))
   },
-  QueryAll = function(query) {
+
+  query_all = function(query) {
     q <- gsub("=", "$[eq];", query, fixed = TRUE)
     q <- gsub("|", "$[vb];", q, fixed = TRUE)
     q <- gsub("?", "$[qu];", q, fixed = TRUE)
@@ -2357,381 +2498,414 @@ RS <- intToUtf8(30)
 
 Fetch <- list(
   # Method
-  Random = function(maxValue, minValue = NULL) {
-    if (is.null(minValue)) {
-      return(paste0("@mr", maxValue))
+  random = function(max_value, min_value = NULL) {
+    if (is.null(min_value)) {
+      return(paste0("@mr", max_value))
     } else {
-      return(paste0("@mr", maxValue, RS, minValue))
+      return(paste0("@mr", max_value, RS, min_value))
     }
   },
-  SpaceToChar = function(text, character = "-") {
+
+  space_to_char = function(text, character = "-") {
     paste0("@sc", character, RS, text)
   },
-  EncodeURI = function(text) paste0("@ue", text),
-  DecodeURI = function(text) paste0("@ud", text),
-  
-  Method = function(methodName, args = NULL) {
-    returnValue <- paste0("@cm", methodName)
+
+  encode_uri = function(text) paste0("@ue", text),
+  decode_uri = function(text) paste0("@ud", text),
+
+  method = function(method_name, args = NULL) {
+    return_value <- paste0("@cm", method_name)
     if (!is.null(args) && length(args) > 0) {
-      returnValue <- paste0(returnValue, RS, paste(args, collapse = US))
+      return_value <- paste0(return_value, RS, paste(args, collapse = US))
     }
-    return(returnValue)
+    return(return_value)
   },
-  
-  ModuleMethod = function(methodName, args = NULL) {
-    returnValue <- paste0("@cM", methodName)
+
+  module_method = function(method_name, args = NULL) {
+    return_value <- paste0("@cM", method_name)
     if (!is.null(args) && length(args) > 0) {
-      returnValue <- paste0(returnValue, RS, paste(args, collapse = US))
+      return_value <- paste0(return_value, RS, paste(args, collapse = US))
     }
-    return(returnValue)
+    return(return_value)
   },
-  
-  # MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-  WasmMethod = function(wasmLanguage, wasmUrl, methodName, args = NULL, key = ".") {
-    returnValue <- paste0("@wA", wasmLanguage, RS, wasmUrl, RS, methodName)
+
+  # Method name may include the class name, separated by a period.
+  # Example: MyClassName.MyMethodName
+  wasm_method = function(wasm_language, wasm_url, method_name, args = NULL) {
+    return_value <- paste0("@wA", wasm_language, RS, wasm_url, RS, method_name)
     if (!is.null(args) && length(args) > 0) {
-      returnValue <- paste0(returnValue, RS, paste(args, collapse = US))
+      return_value <- paste0(return_value, RS, paste(args, collapse = US))
     }
-    return(returnValue)
+    return(return_value)
   },
-  
-  Script = function(scriptText) paste0("@_", gsub("\n", "$[ln];", scriptText, fixed = TRUE)),
-  LoadUrl = function(url, fetchScript = FALSE) paste0("@lu", url, if (fetchScript) paste0(RS, "1") else ""),
-  LoadHtml = function(url, fetchInputPlace = "", fetchScript = FALSE) {
-    paste0("@lh", url, RS, if (fetchScript) "1" else "0", if (nchar(fetchInputPlace) > 0) paste0(RS, fetchInputPlace) else "")
+
+  script = function(script_text) {
+    paste0("@_", gsub("\n", "$[ln];", script_text, fixed = TRUE))
   },
-  LoadLine = function(url, line) paste0("@ll", url, RS, as.character(line)),
-  LoadINI = function(url, name, isINILike = FALSE) paste0("@li", url, RS, name, if (isINILike) paste0(RS, "1") else ""),
-  # Name: Name Or Nested Paths. Is Supprt Index (Student[8].Name). Nested Paths Index Starts At 0
-  LoadJSON = function(url, name) paste0("@lj", url, RS, name),
-  # Name: Name Or XPath; XPath Index Starts At 1
-  LoadXML = function(url, name) paste0("@lx", url, RS, name),
-  # MethodName: It's Check Function Or Variable
-  HasMethod = function(methodName) paste0("@hm", methodName),
-  HasModuleMethod = function(methodName) paste0("@hM", methodName),
-  # This Method Return True Or False If Key Pressed
+
+  load_url = function(url, fetch_script = FALSE) {
+    paste0("@lu", url, if (fetch_script) paste0(RS, "1") else "")
+  },
+
+  load_html = function(url, fetch_input_place = "", fetch_script = FALSE) {
+    paste0(
+      "@lh", url, RS,
+      if (fetch_script) "1" else "0",
+      if (nchar(fetch_input_place) > 0) paste0(RS, fetch_input_place) else ""
+    )
+  },
+
+  load_line = function(url, line) {
+    paste0("@ll", url, RS, as.character(line))
+  },
+
+  load_ini = function(url, name, is_ini_like = FALSE) {
+    paste0("@li", url, RS, name, if (is_ini_like) paste0(RS, "1") else "")
+  },
+
+  # Name: Name or nested paths. Supports indexes (Student[8].Name).
+  # Nested path indexes start at 0.
+  load_json = function(url, name) paste0("@lj", url, RS, name),
+
+  # Name: Name or XPath; XPath indexes start at 1.
+  load_xml = function(url, name) paste0("@lx", url, RS, name),
+
+  # Method name: Check function or variable.
+  has_method = function(method_name) paste0("@hm", method_name),
+  has_module_method = function(method_name) paste0("@hM", method_name),
+
+  # Returns true or false if the specified key modifier is pressed.
   # Modifier: Alt, AltGraph, Control, Meta, Shift, CapsLock, NumLock, ScrollLock
-  GetModifierState = function(modifier) paste0("@ms", modifier),
-  
+  get_modifier_state = function(modifier) paste0("@ms", modifier),
+
   # Math
-  Math = function(methodName, args = NULL) {
-    returnValue <- paste0("@M#", methodName)
+  math = function(method_name, args = NULL) {
+    return_value <- paste0("@M#", method_name)
     if (!is.null(args) && length(args) > 0) {
-      returnValue <- paste0(returnValue, RS, paste(args, collapse = US))
+      return_value <- paste0(return_value, RS, paste(args, collapse = US))
     }
-    return(returnValue)
+    return(return_value)
   },
-  
-  # Data
-  DateYear = "@dy",
-  # Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
-  DateMonth = "@dm",
-  DateDay = "@dd",
-  DateDate = "@dD",
-  DateHours = "@dh",
-  DateMinutes = "@di",
-  DateSeconds = "@ds",
-  DateMilliseconds = "@dl",
-  
+
+  # Dat3
+  date_year = "@dy",
+  # Month in JavaScript starts at index 0; in WebForms Core it starts at index 1.
+  date_month = "@dm",
+  date_day = "@dd",
+  date_date = "@dD",
+  date_hours = "@dh",
+  date_minutes = "@di",
+  date_seconds = "@ds",
+  date_milliseconds = "@dl",
+
   # String
-  Space = "@sp",
-  AtSign = "@sa",
-  
+  space = "@sp",
+  at_sign = "@sa",
+
   # Tag
-  GetId = function(inputPlace) paste0("@$i", inputPlace),
-  GetName = function(inputPlace) paste0("@$n", inputPlace),
-  GetValue = function(inputPlace) paste0("@$v", inputPlace),
-  GetValueLength = function(inputPlace) paste0("@$e", inputPlace),
-  GetClass = function(inputPlace) paste0("@$c", inputPlace),
-  GetStyle = function(inputPlace) paste0("@$s", inputPlace),
-  GetTitle = function(inputPlace) paste0("@$l", inputPlace),
-  GetLabel = function(inputPlace) paste0("@$A", inputPlace),
-  GetText = function(inputPlace) paste0("@$t", inputPlace),
-  GetOuterText = function(inputPlace) paste0("@$o", inputPlace),
-  GetTextLength = function(inputPlace) paste0("@$g", inputPlace),
-  GetAttribute = function(inputPlace, attribute) paste0("@$a", inputPlace, RS, attribute),
-  GetWidth = function(inputPlace) paste0("@$w", inputPlace),
-  GetHeight = function(inputPlace) paste0("@$h", inputPlace),
-  GetIsReadOnly = function(inputPlace) paste0("@$r", inputPlace),
-  GetSelectedIndex = function(inputPlace) paste0("@$x", inputPlace),
-  GetIndex = function(inputPlace) paste0("@$I", inputPlace),
-  GetTextAlign = function(inputPlace) paste0("@$T", inputPlace),
-  GetNodeLength = function(inputPlace) paste0("@$L", inputPlace),
-  GetIsVisible = function(inputPlace) paste0("@$V", inputPlace),
-  
-  # Save
-  HasHash = function(hash) paste0("@HH", hash),
-  Cookie = function(key) paste0("@co", key),
-  Save = function(key = ".", replaceValue = NULL) {
-    if (is.null(replaceValue)) {
+  get_id = function(input_place) paste0("@$i", input_place),
+  get_name = function(input_place) paste0("@$n", input_place),
+  get_value = function(input_place) paste0("@$v", input_place),
+  get_value_length = function(input_place) paste0("@$e", input_place),
+  get_class = function(input_place) paste0("@$c", input_place),
+  get_style = function(input_place) paste0("@$s", input_place),
+  get_title = function(input_place) paste0("@$l", input_place),
+  get_label = function(input_place) paste0("@$A", input_place),
+  get_text = function(input_place) paste0("@$t", input_place),
+  get_outer_text = function(input_place) paste0("@$o", input_place),
+  get_text_length = function(input_place) paste0("@$g", input_place),
+  get_attribute = function(input_place, attribute) {
+    paste0("@$a", input_place, RS, attribute)
+  },
+  get_width = function(input_place) paste0("@$w", input_place),
+  get_height = function(input_place) paste0("@$h", input_place),
+  get_is_read_only = function(input_place) paste0("@$r", input_place),
+  get_selected_index = function(input_place) paste0("@$x", input_place),
+  get_index = function(input_place) paste0("@$I", input_place),
+  get_text_align = function(input_place) paste0("@$T", input_place),
+  get_node_length = function(input_place) paste0("@$L", input_place),
+  get_is_visible = function(input_place) paste0("@$V", input_place),
+  get_tag_hash = function(input_place) paste0("@$H", input_place),
+
+  # Save and Cache
+  has_hash = function(hash) paste0("@HH", hash),
+  cookie = function(key) paste0("@co", key),
+
+  save = function(key = ".", replace_value = NULL) {
+    if (is.null(replace_value)) {
       paste0("@cs", key)
     } else {
-      paste0("@cs", key, RS, replaceValue)
+      paste0("@cs", key, RS, replace_value)
     }
   },
-  SaveThenRemove = function(key) paste0("@cl", key),
-  SaveLength = function(key = ".") paste0("@cg", key),
-  Cache = function(key = ".", replaceValue = NULL) {
-    if (is.null(replaceValue)) {
+
+  save_then_remove = function(key) paste0("@cl", key),
+  save_length = function(key = ".") paste0("@cg", key),
+
+  cache = function(key = ".", replace_value = NULL) {
+    if (is.null(replace_value)) {
       paste0("@cd", key)
     } else {
-      paste0("@cd", key, RS, replaceValue)
+      paste0("@cd", key, RS, replace_value)
     }
   },
-  CacheThenRemove = function(key) paste0("@ct", key),
-  CacheLength = function(key = ".") paste0("@cG", key),
-  SaveLine = function(key = ".", line = 0) paste0("@lL", key, "[", line),
-  SaveLineConsume = function(key = ".") paste0("@lL", key),
-  # INIKey: Only Direct Key is Supported
-  SaveINI = function(key, iniKey) paste0("@lI", key, "[", iniKey),
-  CacheLine = function(key = ".", line = 0) paste0("@dL", key, "[", line),
-  CacheLineConsume = function(key = ".") paste0("@dL", key),
-  # INIKey: Only Direct Key is Supported
-  CacheINI = function(key, iniKey) paste0("@dI", key, "[", iniKey),
-  
+
+  cache_then_remove = function(key) paste0("@ct", key),
+  cache_length = function(key = ".") paste0("@cG", key),
+  save_line = function(key = ".", line = 0) paste0("@lL", key, "[", line),
+  save_line_consume = function(key = ".") paste0("@lL", key),
+
+  # INI key: Only direct keys are supported.
+  save_ini = function(key, ini_key) paste0("@lI", key, "[", ini_key),
+  cache_line = function(key = ".", line = 0) paste0("@dL", key, "[", line),
+  cache_line_consume = function(key = ".") paste0("@dL", key),
+
+  # INI key: Only direct keys are supported.
+  cache_ini = function(key, ini_key) paste0("@dI", key, "[", ini_key),
+
   # Format Storage
-  FormatStore = function(key) paste0("@fr", key),
-  FormatStoreByXMLQuery = function(key, xPath) paste0("@fx", key, RS, xPath),
-  FormatStoreByJSONQuery = function(key, query) paste0("@fj", key, RS, query),
-  FormatStoreByINI = function(key, name) paste0("@fi", key, RS, name),
-  FormatStoreByText = function(key, line) paste0("@ft", key, RS, as.character(line)),
-  FormatStoreByVariable = function(key) paste0("@fv", key),
-  
+  format_store = function(key) paste0("@fr", key),
+  format_store_by_xml_query = function(key, x_path) paste0("@fx", key, RS, x_path),
+  format_store_by_json_query = function(key, query) paste0("@fj", key, RS, query),
+  format_store_by_ini = function(key, name) paste0("@fi", key, RS, name),
+  format_store_by_text = function(key, line) paste0("@ft", key, RS, as.character(line)),
+  format_store_by_variable = function(key) paste0("@fv", key),
+
   # State
-  HasState = function(path) paste0("@hs", path),
-  
+  has_state = function(path) paste0("@hs", path),
+
   # SSE
-  SSEIsConnected = function(path) paste0("@Sc", path),
-  
+  sse_is_connected = function(path) paste0("@Sc", path),
+
   # WebSockets
-  WebSocketsIsConnected = function(path = "") paste0("@Wc", path),
-  
+  web_sockets_is_connected = function(path = "") paste0("@Wc", path),
+
   # Document
-  TabIsActive = "@da",
-  
+  tab_is_active = "@da",
+
   # Window
-  Href = "@wf",
-  PathName = "@wP",
-  Query = function(name = "*") paste0("@wq", name),
-  Hash = "@wh",
-  Host = "@wH",
-  HostName = "@wn",
-  Port = "@wT",
-  Origin = "@wo",
-  GetSelection = "@ws",
-  ScrollX = "@wx",
-  ScrollY = "@wy",
-  Segment = function(index) paste0("@wS", index),
-  # It Only Works when the String Starts with the Tilde Character (~). The Path is Also Separated by the Slash Character (/). #~/Segment1/Segment2/Segment3
-  HashSegment = function(index) paste0("@wt", index),
-  
+  href = "@wf",
+  path_name = "@wP",
+  query = function(name = "*") paste0("@wq", name),
+  hash = "@wh",
+  host = "@wH",
+  host_name = "@wn",
+  port = "@wT",
+  origin = "@wo",
+  get_selection = "@ws",
+  scroll_x = "@wx",
+  scroll_y = "@wy",
+  segment = function(index) paste0("@wS", index),
+
+  # It only works when the string starts with the tilde character (~).
+  # The path is also separated by the slash character (/).
+  # Example: #~/Segment1/Segment2/Segment3
+  hash_segment = function(index) paste0("@wt", index),
+
   # Navigator
-  ClipboardText = "@nC",
-  GeoLatitude = "@nW",
-  GeoLongitude = "@nO",
-  Language = "@nL",
-  IsOnLine = "@no",
-  UserAgent = "@na",
-  
+  clipboard_text = "@nC",
+  geo_latitude = "@nW",
+  geo_longitude = "@nO",
+  language = "@nL",
+  is_on_line = "@no",
+  user_agent = "@na",
+
   # Screen
-  ScreenWidth = "@sw",
-  ScreenHeight = "@sh",
-  ScreenOrientationType = "@so",
-  ScreenOrientationAngle = "@sr",
-  
+  screen_width = "@sw",
+  screen_height = "@sh",
+  screen_orientation_type = "@so",
+  screen_orientation_angle = "@sr",
+
   # Performance
-  TimeOrigin = "@pt",
-  PerformanceNow = "@pn",
-  
+  time_origin = "@pt",
+  performance_now = "@pn",
+
   # Event
-  Event = "@EV",
-  EventSerialize = "@Es",
-  EventKey = "@ek",
-  EventWhich = "@ew",
-  EventClientX = "@ex",
-  EventClientY = "@ey",
-  EventPageX = "@eX",
-  EventPageY = "@eY",
-  EventOffsetX = "@Ex",
-  EventOffsetY = "@Ey",
-  EventDeltaY = "@ed"
+  event = "@EV",
+  event_serialize = "@Es",
+  event_key = "@ek",
+  event_which = "@ew",
+  event_client_x = "@ex",
+  event_client_y = "@ey",
+  event_page_x = "@eX",
+  event_page_y = "@eY",
+  event_offset_x = "@Ex",
+  event_offset_y = "@Ey",
+  event_delta_y = "@ed"
 )
 
 WasmLanguage <- list(
-  # The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
-  C = "c",
-  CPP = "c",
-  Rust = "rust",
-  CSharp = "csharp",
-  # .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-  CSharpMediator = "csharp-m",
-  GO = "go",
-  JAVA = "java",
-  AssemblyScript = "as"
+  c = "c",
+  cpp = "c",
+  rust = "rust",
+  c_sharp = "csharp",
+  go = "go",
+  java = "java",
+  assembly_script = "as"
 )
 
 HtmlEvent <- list(
-  OnAbort = "onabort",
-  OnAfterPrint = "onafterprint",
-  OnBeforePrint = "onbeforeprint",
-  OnBeforeUnload = "onbeforeunload",
-  OnBlur = "onblur",
-  OnCanPlay = "oncanplay",
-  OnCanPlayThrough = "oncanplaythrough",
-  OnChange = "onchange",
-  OnClick = "onclick",
-  OnCopy = "oncopy",
-  OnCut = "oncut",
-  OnDoubleClick = "ondblclick",
-  OnDrag = "ondrag",
-  OnDragEnd = "ondragend",
-  OnDragEnter = "ondragenter",
-  OnDragLeave = "ondragleave",
-  OnDragOver = "ondragover",
-  OnDragStart = "ondragstart",
-  OnDrop = "ondrop",
-  OnDurationChange = "ondurationchange",
-  OnEnded = "onended",
-  OnError = "onerror",
-  OnFocus = "onfocus",
-  OnFocusin = "onfocusin",
-  OnFocusOut = "onfocusout",
-  OnHashChange = "onhashchange",
-  OnInput = "oninput",
-  OnInvalid = "oninvalid",
-  OnKeyDown = "onkeydown",
-  OnKeyPress = "onkeypress",
-  OnKeyUp = "onkeyup",
-  OnLoad = "onload",
-  OnLoadedData = "onloadeddata",
-  OnLoadedMetaData = "onloadedmetadata",
-  OnLoadStart = "onloadstart",
-  OnMouseDown = "onmousedown",
-  OnMouseEnter = "onmouseenter",
-  OnMouseLeave = "onmouseleave",
-  OnMouseMove = "onmousemove",
-  OnMouseOver = "onmouseover",
-  OnMouseOut = "onmouseout",
-  OnMouseUp = "onmouseup",
-  OnOffline = "onoffline",
-  OnOnline = "ononline",
-  OnPageHide = "onpagehide",
-  OnPageShow = "onpageshow",
-  OnPaste = "onpaste",
-  OnPause = "onpause",
-  OnPlay = "onplay",
-  OnPlaying = "onplaying",
-  OnProgress = "onprogress",
-  OnRateChange = "onratechange",
-  OnResize = "onresize",
-  OnReset = "onreset",
-  OnScroll = "onscroll",
-  OnSearch = "onsearch",
-  OnSeeked = "onseeked",
-  OnSeeking = "onseeking",
-  OnSelect = "onselect",
-  OnStalled = "onstalled",
-  OnSubmit = "onsubmit",
-  OnSuspend = "onsuspend",
-  OnTimeUpdate = "ontimeupdate",
-  OnToggle = "ontoggle",
-  OnTouchCancel = "ontouchcancel",
-  OnTouchend = "ontouchend",
-  OnTouchMove = "ontouchmove",
-  OnTouchStart = "ontouchstart",
-  OnUnload = "onunload",
-  OnVolumeChange = "onvolumechange",
-  OnWaiting = "onwaiting",
-  OnWheel = "onwheel"
+  on_abort = "onabort",
+  on_after_print = "onafterprint",
+  on_before_print = "onbeforeprint",
+  on_before_unload = "onbeforeunload",
+  on_blur = "onblur",
+  on_can_play = "oncanplay",
+  on_can_play_through = "oncanplaythrough",
+  on_change = "onchange",
+  on_click = "onclick",
+  on_copy = "oncopy",
+  on_cut = "oncut",
+  on_double_click = "ondblclick",
+  on_drag = "ondrag",
+  on_drag_end = "ondragend",
+  on_drag_enter = "ondragenter",
+  on_drag_leave = "ondragleave",
+  on_drag_over = "ondragover",
+  on_drag_start = "ondragstart",
+  on_drop = "ondrop",
+  on_duration_change = "ondurationchange",
+  on_ended = "onended",
+  on_error = "onerror",
+  on_focus = "onfocus",
+  on_focusin = "onfocusin",
+  on_focus_out = "onfocusout",
+  on_hash_change = "onhashchange",
+  on_input = "oninput",
+  on_invalid = "oninvalid",
+  on_key_down = "onkeydown",
+  on_key_press = "onkeypress",
+  on_key_up = "onkeyup",
+  on_load = "onload",
+  on_loaded_data = "onloadeddata",
+  on_loaded_meta_data = "onloadedmetadata",
+  on_load_start = "onloadstart",
+  on_mouse_down = "onmousedown",
+  on_mouse_enter = "onmouseenter",
+  on_mouse_leave = "onmouseleave",
+  on_mouse_move = "onmousemove",
+  on_mouse_over = "onmouseover",
+  on_mouse_out = "onmouseout",
+  on_mouse_up = "onmouseup",
+  on_offline = "onoffline",
+  on_online = "ononline",
+  on_page_hide = "onpagehide",
+  on_page_show = "onpageshow",
+  on_paste = "onpaste",
+  on_pause = "onpause",
+  on_play = "onplay",
+  on_playing = "onplaying",
+  on_progress = "onprogress",
+  on_rate_change = "onratechange",
+  on_resize = "onresize",
+  on_reset = "onreset",
+  on_scroll = "onscroll",
+  on_search = "onsearch",
+  on_seeked = "onseeked",
+  on_seeking = "onseeking",
+  on_select = "onselect",
+  on_stalled = "onstalled",
+  on_submit = "onsubmit",
+  on_suspend = "onsuspend",
+  on_time_update = "ontimeupdate",
+  on_toggle = "ontoggle",
+  on_touch_cancel = "ontouchcancel",
+  on_touchend = "ontouchend",
+  on_touch_move = "ontouchmove",
+  on_touch_start = "ontouchstart",
+  on_unload = "onunload",
+  on_volume_change = "onvolumechange",
+  on_waiting = "onwaiting",
+  on_wheel = "onwheel"
 )
 
 HtmlEventListener <- list(
-  Abort = "abort",
-  AfterPrint = "afterprint",
-  BeforePrint = "beforeprint",
-  BeforeUnload = "beforeunload",
-  Blur = "blur",
-  CanPlay = "canplay",
-  CanPlayThrough = "canplaythrough",
-  Change = "change",
-  Click = "click",
-  Copy = "copy",
-  Cut = "cut",
-  DoubleClick = "dblclick",
-  Drag = "drag",
-  DragEnd = "dragend",
-  DragEnter = "dragenter",
-  DragLeave = "dragleave",
-  DragOver = "dragover",
-  DragStart = "dragstart",
-  Drop = "drop",
-  DurationChange = "durationchange",
-  Ended = "ended",
-  Error = "error",
-  Focus = "focus",
-  Focusin = "focusin",
-  FocusOut = "focusout",
-  HashChange = "hashchange",
-  Input = "input",
-  Invalid = "invalid",
-  KeyDown = "keydown",
-  KeyPress = "keypress",
-  KeyUp = "keyup",
-  Load = "load",
-  LoadedData = "loadeddata",
-  LoadedMetaData = "loadedmetadata",
-  LoadStart = "loadstart",
-  MouseDown = "mousedown",
-  MouseEnter = "mouseenter",
-  MouseLeave = "mouseleave",
-  MouseMove = "mousemove",
-  MouseOver = "mouseover",
-  MouseOut = "mouseout",
-  MouseUp = "mouseup",
-  Offline = "offline",
-  Online = "online",
-  PageHide = "pagehide",
-  PageShow = "pageshow",
-  Paste = "paste",
-  Pause = "pause",
-  Play = "play",
-  Playing = "playing",
-  Progress = "progress",
-  RateChange = "ratechange",
-  Resize = "resize",
-  Reset = "reset",
-  Scroll = "scroll",
-  Search = "search",
-  Seeked = "seeked",
-  Seeking = "seeking",
-  Select = "select",
-  Stalled = "stalled",
-  Submit = "submit",
-  Suspend = "suspend",
-  TimeUpdate = "timeupdate",
-  Toggle = "toggle",
-  TouchCancel = "touchcancel",
-  Touchend = "touchend",
-  TouchMove = "touchmove",
-  TouchStart = "touchstart",
-  Unload = "unload",
-  VolumeChange = "volumechange",
-  Waiting = "waiting",
-  Wheel = "wheel",
-  
-  AnimationEnd = "animationend",
-  AnimationIteration = "animationiteration",
-  AnimationStart = "animationstart",
-  ContextMenu = "contextmenu",
-  FullScreenChange = "fullscreenchange",
-  FullScreenError = "fullscreenerror",
-  PopState = "popstate",
-  TransitionEnd = "transitionend",
-  Storage = "storage",
-  
+  abort = "abort",
+  after_print = "afterprint",
+  before_print = "beforeprint",
+  before_unload = "beforeunload",
+  blur = "blur",
+  can_play = "canplay",
+  can_play_through = "canplaythrough",
+  change = "change",
+  click = "click",
+  copy = "copy",
+  cut = "cut",
+  double_click = "dblclick",
+  drag = "drag",
+  drag_end = "dragend",
+  drag_enter = "dragenter",
+  drag_leave = "dragleave",
+  drag_over = "dragover",
+  drag_start = "dragstart",
+  drop = "drop",
+  duration_change = "durationchange",
+  ended = "ended",
+  error = "error",
+  focus = "focus",
+  focusin = "focusin",
+  focus_out = "focusout",
+  hash_change = "hashchange",
+  input = "input",
+  invalid = "invalid",
+  key_down = "keydown",
+  key_press = "keypress",
+  key_up = "keyup",
+  load = "load",
+  loaded_data = "loadeddata",
+  loaded_meta_data = "loadedmetadata",
+  load_start = "loadstart",
+  mouse_down = "mousedown",
+  mouse_enter = "mouseenter",
+  mouse_leave = "mouseleave",
+  mouse_move = "mousemove",
+  mouse_over = "mouseover",
+  mouse_out = "mouseout",
+  mouse_up = "mouseup",
+  offline = "offline",
+  online = "online",
+  page_hide = "pagehide",
+  page_show = "pageshow",
+  paste = "paste",
+  pause = "pause",
+  play = "play",
+  playing = "playing",
+  progress = "progress",
+  rate_change = "ratechange",
+  resize = "resize",
+  reset = "reset",
+  scroll = "scroll",
+  search = "search",
+  seeked = "seeked",
+  seeking = "seeking",
+  select = "select",
+  stalled = "stalled",
+  submit = "submit",
+  suspend = "suspend",
+  time_update = "timeupdate",
+  toggle = "toggle",
+  touch_cancel = "touchcancel",
+  touchend = "touchend",
+  touch_move = "touchmove",
+  touch_start = "touchstart",
+  unload = "unload",
+  volume_change = "volumechange",
+  waiting = "waiting",
+  wheel = "wheel",
+
+  animation_end = "animationend",
+  animation_iteration = "animationiteration",
+  animation_start = "animationstart",
+  context_menu = "contextmenu",
+  full_screen_change = "fullscreenchange",
+  full_screen_error = "fullscreenerror",
+  pop_state = "popstate",
+  transition_end = "transitionend",
+  storage = "storage",
+
   # Custom
-  ScrollBottom = "scrollbottom", # Need Call EnableScrollBottomEvent Method Before
-  ElementReached = "elementreached" # Need Call EnableReachedElementEvent Method Before
+  scroll_bottom = "scrollbottom", # Need Call EnableScrollBottomEvent Method Before
+  element_reached = "elementreached" # Need Call EnableReachedElementEvent Method Before
 )
 
 # ExtensionWebFormsMethods
@@ -2760,6 +2934,7 @@ ext_criteria <- function(text, value) {
   }
   val_processed <- gsub("|", "$[vb];", value, fixed = TRUE)
   val_processed <- gsub("?", "$[qu];", val_processed, fixed = TRUE)
+  val_processed <- gsub("=", "$[eq];", val_processed, fixed = TRUE)
   return(paste0(text, "?", val_processed))
 }
 
