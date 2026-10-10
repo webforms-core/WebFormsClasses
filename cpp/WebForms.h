@@ -1,5 +1,5 @@
-// WebForms.h 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.h 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 #pragma once
 
@@ -90,6 +90,266 @@ inline bool endsWith(const std::string& str, const std::string& suffix)
 }
 
 } // namespace detail
+
+    // Do not Add any Data Before or After it
+    class Fetch
+    {
+    private:
+        static constexpr char RS = '\x1E';
+        static constexpr char US = '\x1F';
+
+    public:
+        // Method
+        static std::string Random(int maxValue) { return "@mr" + std::to_string(maxValue); }
+        static std::string Random(int minValue, int maxValue)
+        {
+            return "@mr" + std::to_string(maxValue) + std::string(1, RS) + std::to_string(minValue);
+        }
+        static std::string SpaceToChar(const std::string& text, const std::string& character = "-")
+        {
+            return "@sc" + character + std::string(1, RS) + text;
+        }
+        static std::string EncodeURI(const std::string& text) { return "@ue" + text; }
+        static std::string DecodeURI(const std::string& text) { return "@ud" + text; }
+
+        static std::string Method(const std::string& methodName, const std::vector<std::string>& args = {})
+        {
+            std::string returnValue = "@cm" + methodName;
+
+            if (!args.empty())
+                returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
+
+            return returnValue;
+        }
+
+        static std::string ModuleMethod(const std::string& methodName, const std::vector<std::string>& args = {})
+        {
+            std::string returnValue = "@cM" + methodName;
+
+            if (!args.empty())
+                returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
+
+            return returnValue;
+        }
+
+        // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
+		static std::string WasmMethod(const std::string& wasmLanguage, const std::string& wasmUrl, const std::string& methodName,
+									  const std::vector<std::string>& args = {})
+		{
+			std::string returnValue = "@wA" + wasmLanguage + std::string(1, RS) + wasmUrl + std::string(1, RS) + methodName;
+
+			if (!args.empty())
+				returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
+
+			return returnValue;
+		}
+
+        static std::string Script(const std::string& scriptText)
+        {
+            return "@_" + detail::replaceAll(scriptText, "\n", "$[ln];");
+        }
+        static std::string LoadUrl(const std::string& url, bool fetchScript = false)
+        {
+            return "@lu" + url + (fetchScript ? std::string(1, RS) + "1" : "");
+        }
+        static std::string LoadHtml(const std::string& url, const std::string& fetchInputPlace = "", bool fetchScript = false)
+        {
+            return "@lh" + url + std::string(1, RS) + (fetchScript ? "1" : "0") + (!fetchInputPlace.empty() ? std::string(1, RS) + fetchInputPlace : "");
+        }
+        static std::string LoadLine(const std::string& url, int line)
+        {
+            return "@ll" + url + std::string(1, RS) + std::to_string(line);
+        }
+        static std::string LoadINI(const std::string& url, const std::string& name, bool isINILike = false)
+        {
+            return "@li" + url + std::string(1, RS) + name + (isINILike ? std::string(1, RS) + "1" : "");
+        }
+        // Name: Name Or Nested Paths. Is Supprt Index (Student[8].Name). Nested Paths Index Starts At 0
+        static std::string LoadJSON(const std::string& url, const std::string& name)
+        {
+            return "@lj" + url + std::string(1, RS) + name;
+        }
+        // Name: Name Or XPath; XPath Index Starts At 1
+        static std::string LoadXML(const std::string& url, const std::string& name)
+        {
+            return "@lx" + url + std::string(1, RS) + name;
+        }
+        // MethodName: It's Check Function Or Variable
+        static std::string HasMethod(const std::string& methodName) { return "@hm" + methodName; }
+        static std::string HasModuleMethod(const std::string& methodName) { return "@hM" + methodName; }
+        // This Method Return True Or False If Key Pressed
+        // Modifier: Alt, AltGraph, Control, Meta, Shift, CapsLock, NumLock, ScrollLock
+        static std::string GetModifierState(const std::string& modifier) { return "@ms" + modifier; }
+
+        // Math
+        static std::string Math(const std::string& methodName, const std::vector<std::string>& args = {})
+        {
+            std::string returnValue = "@M#" + methodName;
+
+            if (!args.empty())
+                returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
+
+            return returnValue;
+        }
+
+        // Date
+        static constexpr const char* DateYear = "@dy";
+        // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
+        static constexpr const char* DateMonth = "@dm";
+        static constexpr const char* DateDay = "@dd";
+        static constexpr const char* DateDate = "@dD";
+        static constexpr const char* DateHours = "@dh";
+        static constexpr const char* DateMinutes = "@di";
+        static constexpr const char* DateSeconds = "@ds";
+        static constexpr const char* DateMilliseconds = "@dl";
+
+        // String
+        static constexpr const char* Space = "@sp";
+        static constexpr const char* AtSign = "@sa";
+
+        // Tag
+        static std::string GetId(const std::string& inputPlace) { return "@$i" + inputPlace; }
+        static std::string GetName(const std::string& inputPlace) { return "@$n" + inputPlace; }
+        static std::string GetValue(const std::string& inputPlace) { return "@$v" + inputPlace; }
+        static std::string GetValueLength(const std::string& inputPlace) { return "@$e" + inputPlace; }
+        static std::string GetClass(const std::string& inputPlace) { return "@$c" + inputPlace; }
+        static std::string GetStyle(const std::string& inputPlace) { return "@$s" + inputPlace; }
+        static std::string GetTitle(const std::string& inputPlace) { return "@$l" + inputPlace; }
+        static std::string GetLabel(const std::string& inputPlace) { return "@$A" + inputPlace; }
+        static std::string GetText(const std::string& inputPlace) { return "@$t" + inputPlace; }
+        static std::string GetOuterText(const std::string& inputPlace) { return "@$o" + inputPlace; }
+        static std::string GetTextLength(const std::string& inputPlace) { return "@$g" + inputPlace; }
+        static std::string GetAttribute(const std::string& inputPlace, const std::string& attribute)
+        {
+            return "@$a" + inputPlace + std::string(1, RS) + attribute;
+        }
+        static std::string GetWidth(const std::string& inputPlace) { return "@$w" + inputPlace; }
+        static std::string GetHeight(const std::string& inputPlace) { return "@$h" + inputPlace; }
+        static std::string GetIsReadOnly(const std::string& inputPlace) { return "@$r" + inputPlace; }
+        static std::string GetSelectedIndex(const std::string& inputPlace) { return "@$x" + inputPlace; }
+        static std::string GetIndex(const std::string& inputPlace) { return "@$I" + inputPlace; }
+        static std::string GetTextAlign(const std::string& inputPlace) { return "@$T" + inputPlace; }
+        static std::string GetNodeLength(const std::string& inputPlace) { return "@$L" + inputPlace; }
+        static std::string GetIsVisible(const std::string& inputPlace) { return "@$V" + inputPlace; }
+		static std::string GetTagHash(const std::string& inputPlace) { return "@$H" + inputPlace; }
+
+        // Save and Cache
+        static std::string HasHash(const std::string& hash) { return "@HH" + hash; }
+        static std::string Cookie(const std::string& key) { return "@co" + key; }
+        static std::string Save(const std::string& key = ".") { return "@cs" + key; }
+        static std::string Save(const std::string& key, const std::string& replaceValue)
+        {
+            return "@cs" + key + std::string(1, RS) + replaceValue;
+        }
+        static std::string SaveThenRemove(const std::string& key) { return "@cl" + key; }
+        static std::string SaveLength(const std::string& key = ".") { return "@cg" + key; }
+        static std::string Cache(const std::string& key = ".") { return "@cd" + key; }
+        static std::string Cache(const std::string& key, const std::string& replaceValue)
+        {
+            return "@cd" + key + std::string(1, RS) + replaceValue;
+        }
+        static std::string CacheThenRemove(const std::string& key) { return "@ct" + key; }
+        static std::string CacheLength(const std::string& key = ".") { return "@cG" + key; }
+        static std::string SaveLine(const std::string& key = ".", int line = 0)
+        {
+            return "@lL" + key + "[" + std::to_string(line);
+        }
+        static std::string SaveLineConsume(const std::string& key = ".") { return "@lL" + key; }
+        // INIKey: Only Direct Key is Supported
+        static std::string SaveINI(const std::string& key, const std::string& iniKey)
+        {
+            return "@lI" + key + "[" + iniKey;
+        }
+        static std::string CacheLine(const std::string& key = ".", int line = 0)
+        {
+            return "@dL" + key + "[" + std::to_string(line);
+        }
+        static std::string CacheLineConsume(const std::string& key = ".") { return "@dL" + key; }
+        // INIKey: Only Direct Key is Supported
+        static std::string CacheINI(const std::string& key, const std::string& iniKey)
+        {
+            return "@dI" + key + "[" + iniKey;
+        }
+
+        // Format Storage
+        static std::string FormatStore(const std::string& key) { return "@fr" + key; }
+        static std::string FormatStoreByXMLQuery(const std::string& key, const std::string& xpath)
+        {
+            return "@fx" + key + std::string(1, RS) + xpath;
+        }
+        static std::string FormatStoreByJSONQuery(const std::string& key, const std::string& query)
+        {
+            return "@fj" + key + std::string(1, RS) + query;
+        }
+        static std::string FormatStoreByINI(const std::string& key, const std::string& name)
+        {
+            return "@fi" + key + std::string(1, RS) + name;
+        }
+        static std::string FormatStoreByText(const std::string& key, int line)
+        {
+            return "@ft" + key + std::string(1, RS) + std::to_string(line);
+        }
+        static std::string FormatStoreByVariable(const std::string& key) { return "@fv" + key; }
+
+        // State
+        static std::string HasState(const std::string& path) { return "@hs" + path; }
+
+        // SSE
+        static std::string SSEIsConnected(const std::string& path) { return "@Sc" + path; }
+
+        // WebSockets
+        static std::string WebSocketsIsConnected(const std::string& path = "") { return "@Wc" + path; }
+
+        // Document
+        static constexpr const char* TabIsActive = "@da";
+
+        // Window
+        static constexpr const char* Href = "@wf";
+        static constexpr const char* PathName = "@wP";
+        static std::string Query(const std::string& name = "*") { return "@wq" + name; }
+        static constexpr const char* Hash = "@wh";
+        static constexpr const char* Host = "@wH";
+        static constexpr const char* HostName = "@wn";
+        static constexpr const char* Port = "@wT";
+        static constexpr const char* Origin = "@wo";
+        static constexpr const char* GetSelection = "@ws";
+        static constexpr const char* ScrollX = "@wx";
+        static constexpr const char* ScrollY = "@wy";
+        static std::string Segment(int index) { return "@wS" + std::to_string(index); }
+        // It Only Works when the String Starts with the Tilde Character (~). The Path is Also Separated by the Slash Character (/). #~/Segment1/Segment2/Segment3
+        static std::string HashSegment(int index) { return "@wt" + std::to_string(index); }
+
+        // Navigator
+        static constexpr const char* ClipboardText = "@nC";
+        static constexpr const char* GeoLatitude = "@nW";
+        static constexpr const char* GeoLongitude = "@nO";
+        static constexpr const char* Language = "@nL";
+        static constexpr const char* IsOnLine = "@no";
+        static constexpr const char* UserAgent = "@na";
+
+        // Screen
+        static constexpr const char* ScreenWidth = "@sw";
+        static constexpr const char* ScreenHeight = "@sh";
+        static constexpr const char* ScreenOrientationType = "@so";
+        static constexpr const char* ScreenOrientationAngle = "@sr";
+
+        // Performance
+        static constexpr const char* TimeOrigin = "@pt";
+        static constexpr const char* PerformanceNow = "@pn";
+
+        // Event
+        static constexpr const char* Event = "@EV";
+        static constexpr const char* EventSerialize = "@Es";
+        static constexpr const char* EventKey = "@ek";
+        static constexpr const char* EventWhich = "@ew";
+        static constexpr const char* EventClientX = "@ex";
+        static constexpr const char* EventClientY = "@ey";
+        static constexpr const char* EventPageX = "@eX";
+        static constexpr const char* EventPageY = "@eY";
+        static constexpr const char* EventOffsetX = "@Ex";
+        static constexpr const char* EventOffsetY = "@Ey";
+        static constexpr const char* EventDeltaY = "@ed";
+    };
 
 class WebForms
 {
@@ -270,6 +530,7 @@ public:
     void SetCheckedValue(const std::string& inputPlace, const std::string& value, bool checked) { Add("ks" + inputPlace, value + GS + (checked ? "1" : "0")); }
     void SetCheckedIndex(const std::string& inputPlace, const std::string& index, bool checked) { Add("ki" + inputPlace, index + GS + (checked ? "1" : "0")); }
     void SetCheckedIndex(const std::string& inputPlace, int index, bool checked) { SetCheckedIndex(inputPlace, std::to_string(index), checked); }
+	void SetCustomValidity(const std::string& inputPlace, const std::string& text) { Add("cv" + inputPlace, detail::replaceAll(text, "\n", "$[ln];"));}
 
     // Insert
     // Creates the Data only if it does not exist; otherwise, does nothing.
@@ -312,12 +573,25 @@ public:
     void Delete(const std::string& inputPlace) { Add("de" + inputPlace); }
     void DeleteParent(const std::string& inputPlace) { Add("dp" + inputPlace); }
 
-    // Tag
+    // Tag Transformation
     void SwapTag(const std::string& inputPlace, const std::string& outputPlace) { Add("sp" + inputPlace, outputPlace); }
-    void SetReflection(const std::string& inputPlace, const std::string& tag) { Add("sR" + inputPlace, tag); }
-    void SetReflectionByOutputPlace(const std::string& inputPlace, const std::string& outputPlace) { Add("iR" + inputPlace, outputPlace); }
+    void SetReflect(const std::string& inputPlace, const std::string& tag) { Add("sR" + inputPlace, tag); }
+    void SetReflectByOutputPlace(const std::string& inputPlace, const std::string& outputPlace) { Add("iR" + inputPlace, outputPlace); }
     void SetMorph(const std::string& inputPlace, const std::string& tag) { Add("sM" + inputPlace, tag); }
     void SetMorphByOutputPlace(const std::string& inputPlace, const std::string& outputPlace) { Add("iM" + inputPlace, outputPlace); }
+	// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// InputPlace: Only One Tag
+	void Snapshot(const std::string& inputPlace, const std::string& key = "", bool permanent = false)
+	{
+		Add("rS" + inputPlace,
+			(!key.empty() ? key : inputPlace) + (permanent ? std::string(1, GS) + "1" : ""));
+	}
+
+	void Rollback(const std::string& inputPlace, const std::string& key = "", bool permanent = false)
+	{
+		Add("rB" + inputPlace,
+			(!key.empty() ? key : inputPlace) + (permanent ? std::string(1, GS) + "1" : ""));
+	}
 
     // Browser
     void ChangeUrl(const std::string& url) { Add("cu", url); }
@@ -733,6 +1007,9 @@ public:
 
     // Debug
     void CreateDebugger(bool pause = false) { Add("Dc", pause ? "1" : "0"); }
+	void Try() { Add("tr"); }
+	void Catch() { Add("ca"); }
+	void Comment(const std::string& text) { Add("//", text); }
 
     // Service Worker
     // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -779,6 +1056,8 @@ public:
     void LoadState(const std::string& path) { Add("ls", path); }
     void DeleteState(const std::string& path = "") { Add("DS", path); }
     void DeleteAllState() { Add("DS", "*"); }
+	void LockQueue(const std::string& millisecond) { Add("lq", millisecond); }
+	void LockQueue(int millisecond) { LockQueue(std::to_string(millisecond)); }
 
     // Cookie
     void SetCookie(const std::string& key, const std::string& value, const std::string& seconds, const std::string& path = "")
@@ -838,6 +1117,29 @@ public:
     {
         Add("SR", cacheKey + GS + detail::replaceAll(value, "\n", "$[ln];") + GS + detail::replaceAll(searchValue, "\n", "$[ln];"));
     }
+	// Is Regex Replace
+	void SetFormatSaveValue(const std::string& cacheKey, const std::string& regex, const std::string& replacement)
+	{
+		Add("SF", cacheKey + GS + regex + GS + detail::replaceAll(replacement, "\n", "$[ln];"));
+	}
+	// Operator: +, -, *, /, %, //, **
+	void SetArithmeticSaveValue(const std::string& cacheKey, const std::string& op, const std::string& value)
+	{
+		Add("SM", cacheKey + GS + op + GS + value);
+	}
+	void SetArithmeticSaveValue(const std::string& cacheKey, const std::string& op, int value)
+	{
+		SetArithmeticSaveValue(cacheKey, op, std::to_string(value));
+	}
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	void SetTextOperationSaveValue(const std::string& cacheKey, const std::string& operation, const std::string& value1, const std::string& value2)
+	{
+		Add("ST", cacheKey + GS + operation + GS + value1 + GS + value2);
+	}
+	void SetTextOperationSaveValue(const std::string& cacheKey, const std::string& operation, int value1, int value2)
+	{
+		SetTextOperationSaveValue(cacheKey, operation, std::to_string(value1), std::to_string(value2));
+	}
 
     // Cache
     void CacheId(const std::string& inputPlace, const std::string& key = ".") { Add("@ci" + inputPlace, key); }
@@ -889,6 +1191,29 @@ public:
     {
         Add("CR", cacheKey + GS + detail::replaceAll(value, "\n", "$[ln];") + GS + detail::replaceAll(searchValue, "\n", "$[ln];"));
     }
+	// Is Regex Replace
+	void SetFormatCacheValue(const std::string& cacheKey, const std::string& regexPattern, const std::string& replacement)
+	{
+		Add("CF", cacheKey + GS + regexPattern + GS + detail::replaceAll(replacement, "\n", "$[ln];"));
+	}
+	// Operator: +, -, *, /, %, //, **
+	void SetArithmeticCacheValue(const std::string& cacheKey, const std::string& op, const std::string& value)
+	{
+		Add("CM", cacheKey + GS + op + GS + value);
+	}
+	void SetArithmeticCacheValue(const std::string& cacheKey, const std::string& op, int value)
+	{
+		SetArithmeticCacheValue(cacheKey, op, std::to_string(value));
+	}
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	void SetTextOperationCacheValue(const std::string& cacheKey, const std::string& operation, const std::string& value1, const std::string& value2)
+	{
+		Add("CT", cacheKey + GS + operation + GS + value1 + GS + value2);
+	}
+	void SetTextOperationCacheValue(const std::string& cacheKey, const std::string& operation, int value1, int value2)
+	{
+		SetTextOperationCacheValue(cacheKey, operation, std::to_string(value1), std::to_string(value2));
+	}
 
     // Call
     void LoadUrl(const std::string& inputPlace, const std::string& url) { Add("lu" + inputPlace, url); }
@@ -1011,20 +1336,20 @@ public:
     }
 
     // Pre Runner
-    void AssignDelay(int miliSecond, int index = -1)
+    void AssignDelay(int milliSecond, int index = -1)
     {
         std::string currentLine = GetLineByIndex(index);
         if (currentLine.empty())
             return;
 
         auto parts = detail::splitFirst(currentLine, '=');
-        std::string newName = ":" + std::to_string(miliSecond) + ")" + parts.first;
+        std::string newName = ":" + std::to_string(milliSecond) + ")" + parts.first;
         std::string newValue = parts.second;
 
         UpdateLineByIndex(index, newName, newValue);
     }
 
-    void AssignDelayChange(int miliSecond, int index = -1)
+    void AssignDelayChange(int milliSecond, int index = -1)
     {
         std::string currentLine = GetLineByIndex(index);
         if (currentLine.empty())
@@ -1039,26 +1364,26 @@ public:
             currentName = currentName.substr(closingBracket + 1);
         }
 
-        std::string newName = ":" + std::to_string(miliSecond) + ")" + currentName;
+        std::string newName = ":" + std::to_string(milliSecond) + ")" + currentName;
         std::string newValue = parts.second;
 
         UpdateLineByIndex(index, newName, newValue);
     }
 
-    void AssignInterval(int miliSecond, const std::string& id = "", int index = -1)
+    void AssignInterval(int milliSecond, const std::string& id = "", int index = -1)
     {
         std::string currentLine = GetLineByIndex(index);
         if (currentLine.empty())
             return;
 
         auto parts = detail::splitFirst(currentLine, '=');
-        std::string newName = "(" + std::to_string(miliSecond) + (!id.empty() ? "|" + id : "") + ")" + parts.first;
+        std::string newName = "(" + std::to_string(milliSecond) + (!id.empty() ? "|" + id : "") + ")" + parts.first;
         std::string newValue = parts.second;
 
         UpdateLineByIndex(index, newName, newValue);
     }
 
-    void AssignIntervalChange(int miliSecond, const std::string& id = "", int index = -1)
+    void AssignIntervalChange(int milliSecond, const std::string& id = "", int index = -1)
     {
         std::string currentLine = GetLineByIndex(index);
         if (currentLine.empty())
@@ -1073,7 +1398,7 @@ public:
             currentName = currentName.substr(closingBracket + 1);
         }
 
-        std::string newName = "(" + std::to_string(miliSecond) + (!id.empty() ? "|" + id : "") + ")" + currentName;
+        std::string newName = "(" + std::to_string(milliSecond) + (!id.empty() ? "|" + id : "") + ")" + currentName;
         std::string newValue = parts.second;
 
         UpdateLineByIndex(index, newName, newValue);
@@ -1301,6 +1626,8 @@ public:
     }
     void StartBracket() { Add("{"); }
     void EndBracket() { Add("}"); }
+	
+	// High-Level Methods
     // Used Then In Condition And Loop Methods
     WebForms& Then(WebForms newForm)
     {
@@ -1398,6 +1725,65 @@ public:
         return Repeat(newForm, repeat, index);
     }
 
+	WebForms& Isole(WebForms newForm, const std::string& inputPlace)
+	{
+		std::string bodyData = newForm.GetWebFormsData();
+
+		if (bodyData.empty())
+			return *this;
+
+		WebForms form;
+		form.StartTransientDOM(inputPlace);
+
+		AppendForm(form);
+		newForm.EndTransientDOM();
+		AppendForm(newForm);
+
+		return *this;
+	}
+
+	WebForms& Isole(std::function<void(WebForms&)> configure, const std::string& inputPlace)
+	{
+		WebForms newForm;
+		configure(newForm);
+		return Isole(newForm, inputPlace);
+	}
+
+	// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+	WebForms& Render(WebForms newForm, const std::string& inputPlace, std::string key = "", bool permanent = false)
+	{
+		std::string bodyData = newForm.GetWebFormsData();
+
+		if (bodyData.empty())
+			return *this;
+
+		if (key.empty())
+			key = inputPlace;
+
+		WebForms form;
+
+		form.Exist(permanent ? Fetch::Cache(key) : Fetch::Save(key));
+			form.Rollback(inputPlace, key, permanent);
+		form.Else();
+			form.Snapshot(inputPlace, key, permanent);
+
+		form.StartTransientDOM(inputPlace);
+
+		AppendForm(form);
+		newForm.EndTransientDOM();
+		AppendForm(newForm);
+
+		return *this;
+	}
+
+	WebForms& Render(std::function<void(WebForms&)> configure, const std::string& inputPlace, std::string key = "", bool permanent = false)
+	{
+		WebForms newForm;
+		configure(newForm);
+		return Render(newForm, inputPlace, key, permanent);
+	}
+
     // Async
     // It Supports Brackets and Then
     WebForms& Async()
@@ -1405,8 +1791,8 @@ public:
         Add("{(a)");
         return *this;
     }
-    void Delay(const std::string& miliSecond) { Add("De", miliSecond); }
-    void Delay(int miliSecond) { Delay(std::to_string(miliSecond)); }
+    void Delay(const std::string& milliSecond) { Add("De", milliSecond); }
+    void Delay(int milliSecond) { Delay(std::to_string(milliSecond)); }
 
     // Option
     void ChangeOption(const std::string& name, const std::string& value) { Add("co", name + GS + value); }
@@ -1687,276 +2073,13 @@ public:
 
     class OutputPlace : public InputPlace { };
 
-    // Do not Add any Data Before or After it
-    class Fetch
-    {
-    private:
-        static constexpr char RS = '\x1E';
-        static constexpr char US = '\x1F';
-
-    public:
-        // Method
-        static std::string Random(int maxValue) { return "@mr" + std::to_string(maxValue); }
-        static std::string Random(int minValue, int maxValue)
-        {
-            return "@mr" + std::to_string(maxValue) + std::string(1, RS) + std::to_string(minValue);
-        }
-        static std::string SpaceToChar(const std::string& text, const std::string& character = "-")
-        {
-            return "@sc" + character + std::string(1, RS) + text;
-        }
-        static std::string EncodeURI(const std::string& text) { return "@ue" + text; }
-        static std::string DecodeURI(const std::string& text) { return "@ud" + text; }
-
-        static std::string Method(const std::string& methodName, const std::vector<std::string>& args = {})
-        {
-            std::string returnValue = "@cm" + methodName;
-
-            if (!args.empty())
-                returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
-
-            return returnValue;
-        }
-
-        static std::string ModuleMethod(const std::string& methodName, const std::vector<std::string>& args = {})
-        {
-            std::string returnValue = "@cM" + methodName;
-
-            if (!args.empty())
-                returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
-
-            return returnValue;
-        }
-
-        // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-        static std::string WasmMethod(const std::string& wasmLanguage, const std::string& wasmUrl, const std::string& methodName,
-                                      const std::vector<std::string>& args = {}, const std::string& key = ".")
-        {
-            (void)key;
-            std::string returnValue = "@wA" + wasmLanguage + std::string(1, RS) + wasmUrl + std::string(1, RS) + methodName;
-
-            if (!args.empty())
-                returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
-
-            return returnValue;
-        }
-
-        static std::string Script(const std::string& scriptText)
-        {
-            return "@_" + detail::replaceAll(scriptText, "\n", "$[ln];");
-        }
-        static std::string LoadUrl(const std::string& url, bool fetchScript = false)
-        {
-            return "@lu" + url + (fetchScript ? std::string(1, RS) + "1" : "");
-        }
-        static std::string LoadHtml(const std::string& url, const std::string& fetchInputPlace = "", bool fetchScript = false)
-        {
-            return "@lh" + url + std::string(1, RS) + (fetchScript ? "1" : "0") + (!fetchInputPlace.empty() ? std::string(1, RS) + fetchInputPlace : "");
-        }
-        static std::string LoadLine(const std::string& url, int line)
-        {
-            return "@ll" + url + std::string(1, RS) + std::to_string(line);
-        }
-        static std::string LoadINI(const std::string& url, const std::string& name, bool isINILike = false)
-        {
-            return "@li" + url + std::string(1, RS) + name + (isINILike ? std::string(1, RS) + "1" : "");
-        }
-        // Name: Name Or Nested Paths. Is Supprt Index (Student[8].Name). Nested Paths Index Starts At 0
-        static std::string LoadJSON(const std::string& url, const std::string& name)
-        {
-            return "@lj" + url + std::string(1, RS) + name;
-        }
-        // Name: Name Or XPath; XPath Index Starts At 1
-        static std::string LoadXML(const std::string& url, const std::string& name)
-        {
-            return "@lx" + url + std::string(1, RS) + name;
-        }
-        // MethodName: It's Check Function Or Variable
-        static std::string HasMethod(const std::string& methodName) { return "@hm" + methodName; }
-        static std::string HasModuleMethod(const std::string& methodName) { return "@hM" + methodName; }
-        // This Method Return True Or False If Key Pressed
-        // Modifier: Alt, AltGraph, Control, Meta, Shift, CapsLock, NumLock, ScrollLock
-        static std::string GetModifierState(const std::string& modifier) { return "@ms" + modifier; }
-
-        // Math
-        static std::string Math(const std::string& methodName, const std::vector<std::string>& args = {})
-        {
-            std::string returnValue = "@M#" + methodName;
-
-            if (!args.empty())
-                returnValue += std::string(1, RS) + detail::join(args, std::string(1, US));
-
-            return returnValue;
-        }
-
-        // Data
-        static constexpr const char* DateYear = "@dy";
-        // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
-        static constexpr const char* DateMonth = "@dm";
-        static constexpr const char* DateDay = "@dd";
-        static constexpr const char* DateDate = "@dD";
-        static constexpr const char* DateHours = "@dh";
-        static constexpr const char* DateMinutes = "@di";
-        static constexpr const char* DateSeconds = "@ds";
-        static constexpr const char* DateMilliseconds = "@dl";
-
-        // String
-        static constexpr const char* Space = "@sp";
-        static constexpr const char* AtSign = "@sa";
-
-        // Tag
-        static std::string GetId(const std::string& inputPlace) { return "@$i" + inputPlace; }
-        static std::string GetName(const std::string& inputPlace) { return "@$n" + inputPlace; }
-        static std::string GetValue(const std::string& inputPlace) { return "@$v" + inputPlace; }
-        static std::string GetValueLength(const std::string& inputPlace) { return "@$e" + inputPlace; }
-        static std::string GetClass(const std::string& inputPlace) { return "@$c" + inputPlace; }
-        static std::string GetStyle(const std::string& inputPlace) { return "@$s" + inputPlace; }
-        static std::string GetTitle(const std::string& inputPlace) { return "@$l" + inputPlace; }
-        static std::string GetLabel(const std::string& inputPlace) { return "@$A" + inputPlace; }
-        static std::string GetText(const std::string& inputPlace) { return "@$t" + inputPlace; }
-        static std::string GetOuterText(const std::string& inputPlace) { return "@$o" + inputPlace; }
-        static std::string GetTextLength(const std::string& inputPlace) { return "@$g" + inputPlace; }
-        static std::string GetAttribute(const std::string& inputPlace, const std::string& attribute)
-        {
-            return "@$a" + inputPlace + std::string(1, RS) + attribute;
-        }
-        static std::string GetWidth(const std::string& inputPlace) { return "@$w" + inputPlace; }
-        static std::string GetHeight(const std::string& inputPlace) { return "@$h" + inputPlace; }
-        static std::string GetIsReadOnly(const std::string& inputPlace) { return "@$r" + inputPlace; }
-        static std::string GetSelectedIndex(const std::string& inputPlace) { return "@$x" + inputPlace; }
-        static std::string GetIndex(const std::string& inputPlace) { return "@$I" + inputPlace; }
-        static std::string GetTextAlign(const std::string& inputPlace) { return "@$T" + inputPlace; }
-        static std::string GetNodeLength(const std::string& inputPlace) { return "@$L" + inputPlace; }
-        static std::string GetIsVisible(const std::string& inputPlace) { return "@$V" + inputPlace; }
-
-        // Save
-        static std::string HasHash(const std::string& hash) { return "@HH" + hash; }
-        static std::string Cookie(const std::string& key) { return "@co" + key; }
-        static std::string Save(const std::string& key = ".") { return "@cs" + key; }
-        static std::string Save(const std::string& key, const std::string& replaceValue)
-        {
-            return "@cs" + key + std::string(1, RS) + replaceValue;
-        }
-        static std::string SaveThenRemove(const std::string& key) { return "@cl" + key; }
-        static std::string SaveLength(const std::string& key = ".") { return "@cg" + key; }
-        static std::string Cache(const std::string& key = ".") { return "@cd" + key; }
-        static std::string Cache(const std::string& key, const std::string& replaceValue)
-        {
-            return "@cd" + key + std::string(1, RS) + replaceValue;
-        }
-        static std::string CacheThenRemove(const std::string& key) { return "@ct" + key; }
-        static std::string CacheLength(const std::string& key = ".") { return "@cG" + key; }
-        static std::string SaveLine(const std::string& key = ".", int line = 0)
-        {
-            return "@lL" + key + "[" + std::to_string(line);
-        }
-        static std::string SaveLineConsume(const std::string& key = ".") { return "@lL" + key; }
-        // INIKey: Only Direct Key is Supported
-        static std::string SaveINI(const std::string& key, const std::string& iniKey)
-        {
-            return "@lI" + key + "[" + iniKey;
-        }
-        static std::string CacheLine(const std::string& key = ".", int line = 0)
-        {
-            return "@dL" + key + "[" + std::to_string(line);
-        }
-        static std::string CacheLineConsume(const std::string& key = ".") { return "@dL" + key; }
-        // INIKey: Only Direct Key is Supported
-        static std::string CacheINI(const std::string& key, const std::string& iniKey)
-        {
-            return "@dI" + key + "[" + iniKey;
-        }
-
-        // Format Storage
-        static std::string FormatStore(const std::string& key) { return "@fr" + key; }
-        static std::string FormatStoreByXMLQuery(const std::string& key, const std::string& xpath)
-        {
-            return "@fx" + key + std::string(1, RS) + xpath;
-        }
-        static std::string FormatStoreByJSONQuery(const std::string& key, const std::string& query)
-        {
-            return "@fj" + key + std::string(1, RS) + query;
-        }
-        static std::string FormatStoreByINI(const std::string& key, const std::string& name)
-        {
-            return "@fi" + key + std::string(1, RS) + name;
-        }
-        static std::string FormatStoreByText(const std::string& key, int line)
-        {
-            return "@ft" + key + std::string(1, RS) + std::to_string(line);
-        }
-        static std::string FormatStoreByVariable(const std::string& key) { return "@fv" + key; }
-
-        // State
-        static std::string HasState(const std::string& path) { return "@hs" + path; }
-
-        // SSE
-        static std::string SSEIsConnected(const std::string& path) { return "@Sc" + path; }
-
-        // WebSockets
-        static std::string WebSocketsIsConnected(const std::string& path = "") { return "@Wc" + path; }
-
-        // Document
-        static constexpr const char* TabIsActive = "@da";
-
-        // Window
-        static constexpr const char* Href = "@wf";
-        static constexpr const char* PathName = "@wP";
-        static std::string Query(const std::string& name = "*") { return "@wq" + name; }
-        static constexpr const char* Hash = "@wh";
-        static constexpr const char* Host = "@wH";
-        static constexpr const char* HostName = "@wn";
-        static constexpr const char* Port = "@wT";
-        static constexpr const char* Origin = "@wo";
-        static constexpr const char* GetSelection = "@ws";
-        static constexpr const char* ScrollX = "@wx";
-        static constexpr const char* ScrollY = "@wy";
-        static std::string Segment(int index) { return "@wS" + std::to_string(index); }
-        // It Only Works when the String Starts with the Tilde Character (~). The Path is Also Separated by the Slash Character (/). #~/Segment1/Segment2/Segment3
-        static std::string HashSegment(int index) { return "@wt" + std::to_string(index); }
-
-        // Navigator
-        static constexpr const char* ClipboardText = "@nC";
-        static constexpr const char* GeoLatitude = "@nW";
-        static constexpr const char* GeoLongitude = "@nO";
-        static constexpr const char* Language = "@nL";
-        static constexpr const char* IsOnLine = "@no";
-        static constexpr const char* UserAgent = "@na";
-
-        // Screen
-        static constexpr const char* ScreenWidth = "@sw";
-        static constexpr const char* ScreenHeight = "@sh";
-        static constexpr const char* ScreenOrientationType = "@so";
-        static constexpr const char* ScreenOrientationAngle = "@sr";
-
-        // Performance
-        static constexpr const char* TimeOrigin = "@pt";
-        static constexpr const char* PerformanceNow = "@pn";
-
-        // Event
-        static constexpr const char* Event = "@EV";
-        static constexpr const char* EventSerialize = "@Es";
-        static constexpr const char* EventKey = "@ek";
-        static constexpr const char* EventWhich = "@ew";
-        static constexpr const char* EventClientX = "@ex";
-        static constexpr const char* EventClientY = "@ey";
-        static constexpr const char* EventPageX = "@eX";
-        static constexpr const char* EventPageY = "@eY";
-        static constexpr const char* EventOffsetX = "@Ex";
-        static constexpr const char* EventOffsetY = "@Ey";
-        static constexpr const char* EventDeltaY = "@ed";
-    };
-
     class WasmLanguage
     {
     public:
-        // The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
         static constexpr const char* C = "c";
         static constexpr const char* CPP = "c";
         static constexpr const char* Rust = "rust";
         static constexpr const char* CSharp = "csharp";
-        // .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-        static constexpr const char* CSharpMediator = "csharp-m";
         static constexpr const char* GO = "go";
         static constexpr const char* JAVA = "java";
         static constexpr const char* AssemblyScript = "as";
@@ -2153,15 +2276,16 @@ public:
             return result + "|/";
         }
 
-        inline std::string Criteria(const std::string& text, const std::string& value)
-        {
-            if (text.size() < 1)
-                return value;
+		inline std::string Criteria(const std::string& text, const std::string& value)
+		{
+			if (text.size() < 1)
+				return value;
 
-            std::string v = detail::replaceAll(value, "|", "$[vb];");
-            v = detail::replaceAll(v, "?", "$[qu];");
-            return text + "?" + v;
-        }
+			std::string v = detail::replaceAll(value, "|", "$[vb];");
+			v = detail::replaceAll(v, "?", "$[qu];");
+			v = detail::replaceAll(v, "=", "$[eq];");
+			return text + "?" + v;
+		}
 
         inline std::string AppendFetchReplace(const std::string& text, const std::string& searchValue, const std::string& value)
         {
