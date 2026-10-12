@@ -1,5 +1,5 @@
-// webforms.go 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// webforms.go 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 package WebFormsCore
 
@@ -557,6 +557,10 @@ func (w *WebForms) SetCheckedIndex(inputPlace string, index any, checked bool) {
 	}
 }
 
+func (w *WebForms) SetCustomValidity(inputPlace string, text string) {
+	w.add("cv"+inputPlace, strings.ReplaceAll(text, "\n", "$[ln];"))
+}
+
 // Insert
 // Creates the Data only if it does not exist; otherwise, does nothing.
 func (w *WebForms) InsertId(inputPlace string, id string) {
@@ -727,16 +731,16 @@ func (w *WebForms) DeleteParent(inputPlace string) {
 	w.addName("dp" + inputPlace)
 }
 
-// Tag
+// Tag Transformation
 func (w *WebForms) SwapTag(inputPlace string, outputPlace string) {
 	w.add("sp"+inputPlace, outputPlace)
 }
 
-func (w *WebForms) SetReflection(inputPlace string, tag string) {
+func (w *WebForms) SetReflect(inputPlace string, tag string) {
 	w.add("sR"+inputPlace, tag)
 }
 
-func (w *WebForms) SetReflectionByOutputPlace(inputPlace string, outputPlace string) {
+func (w *WebForms) SetReflectByOutputPlace(inputPlace string, outputPlace string) {
 	w.add("iR"+inputPlace, outputPlace)
 }
 
@@ -746,6 +750,56 @@ func (w *WebForms) SetMorph(inputPlace string, tag string) {
 
 func (w *WebForms) SetMorphByOutputPlace(inputPlace string, outputPlace string) {
 	w.add("iM"+inputPlace, outputPlace)
+}
+
+func (w *WebForms) Snapshot(inputPlace string, args ...any) {
+	key := ""
+	permanent := false
+
+	if len(args) > 0 {
+		if k, ok := args[0].(string); ok {
+			key = k
+		}
+	}
+	if len(args) > 1 {
+		if p, ok := args[1].(bool); ok {
+			permanent = p
+		}
+	}
+
+	if key == "" {
+		key = inputPlace
+	}
+	if permanent {
+		key += GS + "1"
+	}
+
+	w.add("rS"+inputPlace, key)
+}
+
+func (w *WebForms) Rollback(inputPlace string, args ...any) {
+	key := ""
+	permanent := false
+
+	if len(args) > 0 {
+		if k, ok := args[0].(string); ok {
+			key = k
+		}
+	}
+	if len(args) > 1 {
+		if p, ok := args[1].(bool); ok {
+			permanent = p
+		}
+	}
+
+	if key == "" {
+		key = inputPlace
+	}
+	if permanent {
+		key += GS + "1"
+	}
+
+	w.add("rB"+inputPlace, key)
 }
 
 // Browser
@@ -2108,6 +2162,18 @@ func (w *WebForms) CreateDebugger(pause ...bool) {
 	}
 }
 
+func (w *WebForms) Try() {
+	w.add("tr")
+}
+
+func (w *WebForms) Catch() {
+	w.add("ca")
+}
+
+func (w *WebForms) Comment(text string) {
+	w.add("//", text)
+}
+
 // Service Worker
 // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
 func (w *WebForms) ServiceWorkerRegister(path ...string) {
@@ -2278,6 +2344,15 @@ func (w *WebForms) DeleteState(path ...string) {
 
 func (w *WebForms) DeleteAllState() {
 	w.add("DS", "*")
+}
+
+func (w *WebForms) LockQueue(millisecond any) {
+	switch value := millisecond.(type) {
+	case string:
+		w.add("lq", value)
+	case int:
+		w.add("lq", strconv.Itoa(value))
+	}
 }
 
 // Cookie
@@ -2510,6 +2585,41 @@ func (w *WebForms) ReplaceSaveValue(cacheKey string, searchValue string, value s
 			strings.ReplaceAll(searchValue, "\n", "$[ln];"))
 }
 
+// Is Regex Replace
+func (w *WebForms) SetFormatSaveValue(cacheKey string, regex string, replacement string) {
+	w.add("SF", cacheKey+GS+regex+GS+strings.ReplaceAll(replacement, "\n", "$[ln];"))
+}
+
+// Operator: +, -, *, /, %, //, **
+func (w *WebForms) SetArithmeticSaveValue(cacheKey string, operator string, value any) {
+	var strValue string
+	switch v := value.(type) {
+	case string:
+		strValue = v
+	case int:
+		strValue = strconv.Itoa(v)
+	}
+	w.add("SM", cacheKey+GS+operator+GS+strValue)
+}
+
+// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+func (w *WebForms) SetTextOperationSaveValue(cacheKey string, operation string, value1 any, value2 any) {
+	var v1, v2 string
+	switch v := value1.(type) {
+	case string:
+		v1 = v
+	case int:
+		v1 = strconv.Itoa(v)
+	}
+	switch v := value2.(type) {
+	case string:
+		v2 = v
+	case int:
+		v2 = strconv.Itoa(v)
+	}
+	w.add("ST", cacheKey+GS+operation+GS+v1+GS+v2)
+}
+
 // Cache
 func (w *WebForms) CacheId(inputPlace string, key ...string) {
 	k := "."
@@ -2728,6 +2838,41 @@ func (w *WebForms) ReplaceCacheValue(cacheKey string, searchValue string, value 
 		cacheKey+GS+
 			strings.ReplaceAll(value, "\n", "$[ln];")+GS+
 			strings.ReplaceAll(searchValue, "\n", "$[ln];"))
+}
+
+// Is Regex Replace
+func (w *WebForms) SetFormatCacheValue(cacheKey string, regex string, replacement string) {
+	w.add("CF", cacheKey+GS+regex+GS+strings.ReplaceAll(replacement, "\n", "$[ln];"))
+}
+
+// Operator: +, -, *, /, %, //, **
+func (w *WebForms) SetArithmeticCacheValue(cacheKey string, operator string, value any) {
+	var strValue string
+	switch v := value.(type) {
+	case string:
+		strValue = v
+	case int:
+		strValue = strconv.Itoa(v)
+	}
+	w.add("CM", cacheKey+GS+operator+GS+strValue)
+}
+
+// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+func (w *WebForms) SetTextOperationCacheValue(cacheKey string, operation string, value1 any, value2 any) {
+	var v1, v2 string
+	switch v := value1.(type) {
+	case string:
+		v1 = v
+	case int:
+		v1 = strconv.Itoa(v)
+	}
+	switch v := value2.(type) {
+	case string:
+		v2 = v
+	case int:
+		v2 = strconv.Itoa(v)
+	}
+	w.add("CT", cacheKey+GS+operation+GS+v1+GS+v2)
 }
 
 // Call
@@ -3074,7 +3219,7 @@ func (w *WebForms) ReplaceStartTag(inputPlace string, value string, newValue str
 }
 
 // Pre Runner
-func (w *WebForms) AssignDelay(miliSecond int, index ...int) {
+func (w *WebForms) AssignDelay(milliSecond int, index ...int) {
 	i := -1
 	if len(index) > 0 {
 		i = index[0]
@@ -3086,7 +3231,7 @@ func (w *WebForms) AssignDelay(miliSecond int, index ...int) {
 	}
 
 	parts := strings.SplitN(currentLine, "=", 2)
-	newName := ":" + strconv.Itoa(miliSecond) + ")" + parts[0]
+	newName := ":" + strconv.Itoa(milliSecond) + ")" + parts[0]
 	newValue := ""
 
 	if len(parts) > 1 {
@@ -3096,7 +3241,7 @@ func (w *WebForms) AssignDelay(miliSecond int, index ...int) {
 	w.updateLineByIndex(i, newName, newValue)
 }
 
-func (w *WebForms) AssignDelayChange(miliSecond int, index ...int) {
+func (w *WebForms) AssignDelayChange(milliSecond int, index ...int) {
 	i := -1
 	if len(index) > 0 {
 		i = index[0]
@@ -3115,7 +3260,7 @@ func (w *WebForms) AssignDelayChange(miliSecond int, index ...int) {
 		currentName = currentName[closingBracket+1:]
 	}
 
-	newName := ":" + strconv.Itoa(miliSecond) + ")" + currentName
+	newName := ":" + strconv.Itoa(milliSecond) + ")" + currentName
 	newValue := ""
 
 	if len(parts) > 1 {
@@ -3125,7 +3270,7 @@ func (w *WebForms) AssignDelayChange(miliSecond int, index ...int) {
 	w.updateLineByIndex(i, newName, newValue)
 }
 
-func (w *WebForms) AssignInterval(miliSecond int, id string, index ...int) {
+func (w *WebForms) AssignInterval(milliSecond int, id string, index ...int) {
 	i := -1
 	if len(index) > 0 {
 		i = index[0]
@@ -3137,7 +3282,7 @@ func (w *WebForms) AssignInterval(miliSecond int, id string, index ...int) {
 	}
 
 	parts := strings.SplitN(currentLine, "=", 2)
-	newName := "(" + strconv.Itoa(miliSecond)
+	newName := "(" + strconv.Itoa(milliSecond)
 	if id != "" {
 		newName += "|" + id
 	}
@@ -3151,7 +3296,7 @@ func (w *WebForms) AssignInterval(miliSecond int, id string, index ...int) {
 	w.updateLineByIndex(i, newName, newValue)
 }
 
-func (w *WebForms) AssignIntervalChange(miliSecond int, id string, index ...int) {
+func (w *WebForms) AssignIntervalChange(milliSecond int, id string, index ...int) {
 	i := -1
 	if len(index) > 0 {
 		i = index[0]
@@ -3170,7 +3315,7 @@ func (w *WebForms) AssignIntervalChange(miliSecond int, id string, index ...int)
 		currentName = currentName[closingBracket+1:]
 	}
 
-	newName := "(" + strconv.Itoa(miliSecond)
+	newName := "(" + strconv.Itoa(milliSecond)
 	if id != "" {
 		newName += "|" + id
 	}
@@ -3843,12 +3988,13 @@ func (w *WebForms) EndBracket() {
 	w.add("}")
 }
 
+// High-Level Methods
 // Used Then In Condition And Loop Methods
 func (w *WebForms) Then(newForm *WebForms) *WebForms {
 	var data string
 
 	if newForm != nil {
-		data = newForm.GetwebFormsData()
+		data = newForm.GetWebFormsData()
 	}
 
 	if data != "" {
@@ -3869,7 +4015,7 @@ func (w *WebForms) ThenConfigure(configure func(*WebForms)) *WebForms {
 	var data string
 
 	if newForm != nil {
-		data = newForm.GetwebFormsData()
+		data = newForm.GetWebFormsData()
 	}
 
 	if data != "" {
@@ -3888,7 +4034,7 @@ func (w *WebForms) Repeat(newForm *WebForms, repeat int) *WebForms {
 		return w
 	}
 
-	bodyData := newForm.GetwebFormsData()
+	bodyData := newForm.GetWebFormsData()
 
 	if bodyData == "" {
 		return w
@@ -3910,7 +4056,7 @@ func (w *WebForms) RepeatWithIndex(newForm *WebForms, repeat int, index string) 
 	w.GoTo(index)
 	w.StartIndex(index)
 
-	bodyData := newForm.GetwebFormsData()
+	bodyData := newForm.GetWebFormsData()
 
 	if bodyData == "" {
 		return w
@@ -3921,7 +4067,7 @@ func (w *WebForms) RepeatWithIndex(newForm *WebForms, repeat int, index string) 
 	if index == "" {
 		indexNumber := -1
 
-		for _, x := range strings.Split(w.GetwebFormsData(), "\n") {
+		for _, x := range strings.Split(w.GetWebFormsData(), "\n") {
 			if strings.HasPrefix(x, "#") {
 				indexNumber++
 			}
@@ -3947,6 +4093,90 @@ func (w *WebForms) RepeatConfigureWithIndex(configure func(*WebForms), repeat in
 	configure(newForm)
 
 	return w.RepeatWithIndex(newForm, repeat, index)
+}
+
+func (w *WebForms) Isole(newForm *WebForms, inputPlace string) *WebForms {
+	if newForm == nil {
+		return w
+	}
+
+	bodyData := newForm.GetWebFormsData()
+
+	if bodyData == "" {
+		return w
+	}
+
+	form := New()
+	form.StartTransientDOM(inputPlace)
+
+	w.AppendForm(form)
+	newForm.EndTransientDOM()
+	w.AppendForm(newForm)
+
+	return w
+}
+
+func (w *WebForms) IsoleConfigure(configure func(*WebForms), inputPlace string) *WebForms {
+	newForm := New()
+	configure(newForm)
+	return w.Isole(newForm, inputPlace)
+}
+
+// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+func (w *WebForms) Render(newForm *WebForms, inputPlace string, args ...any) *WebForms {
+	if newForm == nil {
+		return w
+	}
+
+	bodyData := newForm.GetWebFormsData()
+
+	if bodyData == "" {
+		return w
+	}
+
+	key := ""
+	permanent := false
+
+	if len(args) > 0 {
+		if k, ok := args[0].(string); ok {
+			key = k
+		}
+	}
+	if len(args) > 1 {
+		if p, ok := args[1].(bool); ok {
+			permanent = p
+		}
+	}
+
+	if key == "" {
+		key = inputPlace
+	}
+
+	form := New()
+
+	if permanent {
+		form.Exist(Fetch.Cache(key), 0)
+	} else {
+		form.Exist(Fetch.Save(key), 0)
+	}
+	form.Rollback(inputPlace, key, permanent)
+	form.Else()
+	form.Snapshot(inputPlace, key, permanent)
+
+	form.StartTransientDOM(inputPlace)
+
+	w.AppendForm(form)
+	newForm.EndTransientDOM()
+	w.AppendForm(newForm)
+
+	return w
+}
+
+func (w *WebForms) RenderConfigure(configure func(*WebForms), inputPlace string, args ...any) *WebForms {
+	newForm := New()
+	configure(newForm)
+	return w.Render(newForm, inputPlace, args...)
 }
 
 // Async
@@ -4175,7 +4405,7 @@ func (w *WebForms) ChecksumCalculation(text string) string {
 }
 
 func (w *WebForms) GetChecksum() string {
-	return w.ChecksumCalculation(w.GetwebFormsData())
+	return w.ChecksumCalculation(w.GetWebFormsData())
 }
 
 // Get
@@ -4219,7 +4449,7 @@ func (w *WebForms) ExportToLineBreak(src string) string {
 	return "[web-forms]$[sln];" + w.GetFormsActionDataLineBreak()
 }
 
-func (w *WebForms) GetwebFormsData() string {
+func (w *WebForms) GetWebFormsData() string {
 	return w.webFormsData
 }
 
@@ -4228,7 +4458,7 @@ func (w *WebForms) AppendForm(form *WebForms) {
 		return
 	}
 
-	otherData := form.GetwebFormsData()
+	otherData := form.GetWebFormsData()
 	if otherData != "" {
 		if len(w.webFormsData) > 0 {
 			w.webFormsData += "\n"
@@ -4475,7 +4705,7 @@ const (
 )
 
 var Fetch = fetch{
-	// Data
+	// Date
 	DateYear:         "@dy",
 	DateMonth:        "@dm",
 	DateDay:          "@dd",
@@ -4590,7 +4820,7 @@ func (fetch) ModuleMethod(methodName string, args ...any) string {
 }
 
 // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-func (fetch) WasmMethod(wasmLanguage string, wasmURL string, methodName string, args []any, key string) string {
+func (fetch) WasmMethod(wasmLanguage string, wasmURL string, methodName string, args []any) string {
 	returnValue := "@wA" + wasmLanguage + string(FetchRS) + wasmURL + string(FetchRS) + methodName
 
 	if args != nil {
@@ -4767,7 +4997,11 @@ func (fetch) GetIsVisible(inputPlace string) string {
 	return "@$V" + inputPlace
 }
 
-// Save
+func (fetch) GetTagHash(inputPlace string) string {
+	return "@$H" + inputPlace
+}
+
+// Save and Cache
 func (fetch) HasHash(hash string) string {
 	return "@HH" + hash
 }
@@ -4952,20 +5186,16 @@ type wasmLanguage struct {
 	CPP            string
 	Rust           string
 	CSharp         string
-	CSharpMediator string
 	GO             string
 	JAVA           string
 	AssemblyScript string
 }
 
 var WasmLanguage = wasmLanguage{
-	// The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
 	C:              "c",
 	CPP:            "c",
 	Rust:           "rust",
 	CSharp:         "csharp",
-	// .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-	CSharpMediator: "csharp-m",
 	GO:             "go",
 	JAVA:            "java",
 	AssemblyScript: "as",
@@ -5236,6 +5466,7 @@ func Criteria(text string, value string) string {
 
 	value = strings.ReplaceAll(value, "|", "$[vb];")
 	value = strings.ReplaceAll(value, "?", "$[qu];")
+	value = strings.ReplaceAll(value, "=", "$[eq];")
 
 	return text + "?" + value
 }
