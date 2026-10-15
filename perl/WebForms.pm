@@ -1,5 +1,5 @@
-# WebForms.pm 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-# Compatible with WebFormsJS version 2.1
+# WebForms.pm 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+# Compatible with WebFormsJS version 2.2
 
 package WebForms;
 our $VERSION = '2.1.0';
@@ -338,6 +338,12 @@ sub set_checked_index {
     $self->_add("ki" . $input_place, "$index" . GS . ($checked ? "1" : "0"));
 }
 
+sub set_custom_validity {
+    my ($self, $input_place, $text) = @_;
+    $text =~ s/\n/\$[ln];/g;
+    $self->_add("cv" . $input_place, $text);
+}
+
 # Insert
 # Creates the Data only if it does not exist; otherwise, does nothing.
 sub insert_id {
@@ -482,18 +488,18 @@ sub delete_parent {
     $self->_add("dp" . $input_place);
 }
 
-# Tag
+# Tag Transformation
 sub swap_tag {
     my ($self, $input_place, $output_place) = @_;
     $self->_add("sp" . $input_place, $output_place);
 }
 
-sub set_reflection {
+sub set_reflect {
     my ($self, $input_place, $tag) = @_;
     $self->_add("sR" . $input_place, $tag);
 }
 
-sub set_reflection_by_output_place {
+sub set_reflect_by_output_place {
     my ($self, $input_place, $output_place) = @_;
     $self->_add("iR" . $input_place, $output_place);
 }
@@ -506,6 +512,31 @@ sub set_morph {
 sub set_morph_by_output_place {
     my ($self, $input_place, $output_place) = @_;
     $self->_add("iM" . $input_place, $output_place);
+}
+
+# The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+# InputPlace: Only One Tag
+
+sub snapshot {
+    my ($self, $input_place, $key, $permanent) = @_;
+    $key = "" unless defined $key;
+    $permanent = 0 unless defined $permanent;
+
+    my $key_part  = ($key ne "") ? $key : $input_place;
+    my $perm_part = $permanent ? GS . "1" : "";
+
+    $self->_add("rS" . $input_place, $key_part . $perm_part);
+}
+
+sub rollback {
+    my ($self, $input_place, $key, $permanent) = @_;
+    $key = "" unless defined $key;
+    $permanent = 0 unless defined $permanent;
+
+    my $key_part  = ($key ne "") ? $key : $input_place;
+    my $perm_part = $permanent ? GS . "1" : "";
+
+    $self->_add("rB" . $input_place, $key_part . $perm_part);
 }
 
 # Browser
@@ -1224,6 +1255,21 @@ sub create_debugger {
 	$self->_add("Dc", $pause ? "1" : "0");
 }
 
+sub try {
+    my ($self) = @_;
+    $self->_add("tr");
+}
+
+sub catch {
+    my ($self) = @_;
+    $self->_add("ca");
+}
+
+sub comment {
+    my ($self, $text) = @_;
+    $self->_add("//", $text);
+}
+
 # Service Worker
 # To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
 sub service_worker_register {
@@ -1338,6 +1384,12 @@ sub delete_state {
 sub delete_all_state {
 	my ($self) = @_;
 	$self->_add("DS", "*");
+}
+
+sub lock_queue {
+    my ($self, $millisecond) = @_;
+    my $final_millisecond = ($millisecond =~ /^-?\d+$/) ? "${millisecond}" : $millisecond;
+    $self->_add("lq", $final_millisecond);
 }
 
 # Cookie
@@ -1518,6 +1570,29 @@ sub replace_save_value {
 	$self->_add("SR", $cache_key . GS . $val_clean . GS . $search_clean);
 }
 
+# Is Regex Replace
+sub set_format_save_value {
+    my ($self, $cache_key, $regex, $replacement) = @_;
+    my $replacement_clean = $replacement;
+    $replacement_clean =~ s/\n/\$[ln];/g;
+    $self->_add("SF", $cache_key . GS . $regex . GS . $replacement_clean);
+}
+
+# Operator: +, -, *, /, %, //, **
+sub set_arithmetic_save_value {
+    my ($self, $cache_key, $operator, $value) = @_;
+    my $final_value = ($value =~ /^-?\d+$/) ? "${value}" : $value;
+    $self->_add("SM", $cache_key . GS . $operator . GS . $final_value);
+}
+
+# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+sub set_text_operation_save_value {
+    my ($self, $cache_key, $operation, $value1, $value2) = @_;
+    my $final_value1 = ($value1 =~ /^-?\d+$/) ? "${value1}" : $value1;
+    my $final_value2 = ($value2 =~ /^-?\d+$/) ? "${value2}" : $value2;
+    $self->_add("ST", $cache_key . GS . $operation . GS . $final_value1 . GS . $final_value2);
+}
+
 # Cache
 sub cache_id {
 	my ($self, $input_place, $key) = @_;
@@ -1693,6 +1768,26 @@ sub replace_cache_value {
 	$self->_add("CR", $cache_key . GS . $val_clean . GS . $search_clean);
 }
 
+# Is Regex Replace
+sub set_format_cache_value {
+    my ($self, $cache_key, $regex, $replacement) = @_;
+    my $replacement_clean = $replacement;
+    $replacement_clean =~ s/\n/\$[ln];/g;
+    $self->_add("CF", $cache_key . GS . $regex . GS . $replacement_clean);
+}
+
+# Operator: +, -, *, /, %, //, **
+sub set_arithmetic_cache_value {
+    my ($self, $cache_key, $operator, $value) = @_;
+    $self->_add("CM", $cache_key . GS . $operator . GS . $value);
+}
+
+# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+sub set_text_operation_cache_value {
+    my ($self, $cache_key, $operation, $value1, $value2) = @_;
+    $self->_add("CT", $cache_key . GS . $operation . GS . $value1 . GS . $value2);
+}
+
 # Call
 sub load_url {
 	my ($self, $input_place, $url) = @_;
@@ -1866,20 +1961,20 @@ sub replace_start_tag {
 
 # Pre Runner
 sub assign_delay {
-	my ($self, $mili_second, $index) = @_;
+	my ($self, $milli_second, $index) = @_;
 	$index = -1 if !defined $index;
 	my $current_line = $self->_get_line_by_index($index);
 	return if !defined $current_line || $current_line eq "";
 
 	my @parts = split(/=/, $current_line, 2);
-	my $new_name = ":" . $mili_second . ")" . $parts[0];
+	my $new_name = ":" . $milli_second . ")" . $parts[0];
 	my $new_value = (scalar(@parts) > 1) ? $parts[1] : "";
 
 	$self->_update_line_by_index($index, $new_name, $new_value);
 }
 
 sub assign_delay_change {
-	my ($self, $mili_second, $index) = @_;
+	my ($self, $milli_second, $index) = @_;
 	$index = -1 if !defined $index;
 	my $current_line = $self->_get_line_by_index($index);
 	return if !defined $current_line || $current_line eq "";
@@ -1892,14 +1987,14 @@ sub assign_delay_change {
 		$current_name = substr($current_name, $closing_bracket + 1);
 	}
 
-	my $new_name = ":" . $mili_second . ")" . $current_name;
+	my $new_name = ":" . $milli_second . ")" . $current_name;
 	my $new_value = (scalar(@parts) > 1) ? $parts[1] : "";
 
 	$self->_update_line_by_index($index, $new_name, $new_value);
 }
 
 sub assign_interval {
-	my ($self, $mili_second, $id, $index) = @_;
+	my ($self, $milli_second, $id, $index) = @_;
 	$index = -1 if !defined $index;
 	$id = "" if !defined $id;
 	my $current_line = $self->_get_line_by_index($index);
@@ -1907,14 +2002,14 @@ sub assign_interval {
 
 	my @parts = split(/=/, $current_line, 2);
 	my $id_part = ($id ne "") ? "|" . $id : "";
-	my $new_name = "(" . $mili_second . $id_part . ")" . $parts[0];
+	my $new_name = "(" . $milli_second . $id_part . ")" . $parts[0];
 	my $new_value = (scalar(@parts) > 1) ? $parts[1] : "";
 
 	$self->_update_line_by_index($index, $new_name, $new_value);
 }
 
 sub assign_interval_change {
-	my ($self, $mili_second, $id, $index) = @_;
+	my ($self, $milli_second, $id, $index) = @_;
 	$index = -1 if !defined $index;
 	$id = "" if !defined $id;
 	my $current_line = $self->_get_line_by_index($index);
@@ -1929,7 +2024,7 @@ sub assign_interval_change {
 	}
 
 	my $id_part = ($id ne "") ? "|" . $id : "";
-	my $new_name = "(" . $mili_second . $id_part . ")" . $current_name;
+	my $new_name = "(" . $milli_second . $id_part . ")" . $current_name;
 	my $new_value = (scalar(@parts) > 1) ? $parts[1] : "";
 
 	$self->_update_line_by_index($index, $new_name, $new_value);
@@ -2265,14 +2360,12 @@ sub for_each {
 	return $self;
 }
 
-# 'break' is a reserved keyword in Perl, so 'wf_break' is used to preserve API intent without syntax errors.
-sub wf_break {
+sub break_ {
 	my ($self) = @_;
 	$self->_add(";");
 }
 
-# 'else' is a reserved keyword in Perl, so 'wf_else' is used to preserve API intent without syntax errors.
-sub wf_else {
+sub else_ {
 	my ($self) = @_;
 	$self->_add("}e");
 	return $self;
@@ -2288,8 +2381,9 @@ sub end_bracket {
 	$self->_add("}");
 }
 
+# High-Level Methods
 # Used Then In Condition And Loop Methods
-sub then_form {
+sub then {
 	my ($self, $new_form) = @_;
 	return $self if !defined $new_form;
 	
@@ -2306,7 +2400,7 @@ sub then_form {
 	return $self;
 }
 
-sub repeat_form {
+sub repeat {
 	my ($self, $new_form, $repeat, $index) = @_;
 	return $self if !defined $new_form;
 
@@ -2331,6 +2425,67 @@ sub repeat_form {
 	return $self;
 }
 
+sub isole {
+    my ($self, $new_form, $input_place) = @_;
+
+    if (ref($new_form) eq 'CODE') {
+        my $form = WebForms->new();
+        $new_form->($form);
+        return $self->isole($form, $input_place);
+    }
+
+    return $self if !defined $new_form;
+
+    my $body_data = $new_form->get_web_forms_data();
+    return $self if !defined $body_data || $body_data eq "";
+
+    my $form = WebForms->new();
+    $form->start_transient_dom($input_place);
+
+    $self->append_form($form);
+    $new_form->end_transient_dom();
+    $self->append_form($new_form);
+
+    return $self;
+}
+
+# The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+# This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+sub render {
+    my ($self, $new_form, $input_place, $key, $permanent) = @_;
+
+    if (ref($new_form) eq 'CODE') {
+        my $form = WebForms->new();
+        $new_form->($form);
+        return $self->render($form, $input_place, $key, $permanent);
+    }
+
+    $key = "" unless defined $key;
+    $permanent = 0 unless defined $permanent;
+
+    return $self if !defined $new_form;
+
+    my $body_data = $new_form->get_web_forms_data();
+    return $self if !defined $body_data || $body_data eq "";
+
+    $key = $input_place if $key eq "";
+
+    my $form = WebForms->new();
+
+    $form->exist($permanent ? Fetch::cache($key) : Fetch::save($key));
+    $form->rollback($input_place, $key, $permanent);
+    $form->else_();
+    $form->snapshot($input_place, $key, $permanent);
+
+    $form->start_transient_dom($input_place);
+
+    $self->append_form($form);
+    $new_form->end_transient_dom();
+    $self->append_form($new_form);
+
+    return $self;
+}
+
 # Async
 # It Supports Brackets and Then
 sub async_action {
@@ -2340,8 +2495,8 @@ sub async_action {
 }
 
 sub delay {
-	my ($self, $mili_second) = @_;
-	$self->_add("De", "$mili_second");
+	my ($self, $milli_second) = @_;
+	$self->_add("De", "$milli_second");
 }
 
 # Option
@@ -2820,8 +2975,7 @@ sub module_method {
 
 # MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
 sub wasm_method {
-    my ($wasm_language, $wasm_url, $method_name, $args, $key) = @_;
-    $key = "." if !defined $key;
+    my ($wasm_language, $wasm_url, $method_name, $args) = @_;
     my $return_value = '@wA' . $wasm_language . RS . $wasm_url . RS . $method_name;
     if (defined $args && ref($args) eq 'ARRAY' && scalar(@$args) > 0) {
         $return_value .= RS . join(US, @$args);
@@ -2900,7 +3054,7 @@ sub math {
     return $return_value;
 }
 
-# Data
+# Date
 use constant DateYear => '@dy';
 # Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
 use constant DateMonth => '@dm';
@@ -3016,7 +3170,12 @@ sub get_is_visible {
     return '@$V' . $input_place;
 }
 
-# Save
+sub get_tag_hash {
+    my ($input_place) = @_;
+    return '@$H' . $input_place;
+}
+
+# Save and Cache
 sub has_hash {
     my ($hash_val) = @_;
     return '@HH' . $hash_val;
@@ -3226,13 +3385,10 @@ use strict;
 use warnings;
 use v5.36;
 
-# The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
 use constant C => "c";
 use constant CPP => "c";
 use constant Rust => "rust";
 use constant CSharp => "csharp";
-# .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-use constant CSharpMediator => "csharp-m";
 use constant GO => "go";
 use constant JAVA => "java";
 use constant AssemblyScript => "as";
@@ -3434,6 +3590,7 @@ sub criteria {
     my $res = $value;
     $res =~ s/\|/\$[vb];/g;
     $res =~ s/\?/\$[qu];/g;
+    $res =~ s/\=/\$[eq];/g;
     return $text . "?" . $res;
 }
 
