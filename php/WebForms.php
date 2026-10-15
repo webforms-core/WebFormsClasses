@@ -1,6 +1,6 @@
 <?php
-// WebForms.php 2.1.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.php 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 namespace WebFormsCore;
 
@@ -118,6 +118,7 @@ class WebForms
     public function setFocus(string $inputPlace, bool $focus): void { $this->add('sf' . $inputPlace, $focus ? '1' : '0'); }
     public function setSelectedValue(string $inputPlace, string $value): void { $this->add('ts' . $inputPlace, $value); }
     public function setCheckedValue(string $inputPlace, string $value, bool $checked): void { $this->add('ks' . $inputPlace, $value . self::GS . ($checked ? '1' : '0')); }
+	public function setCustomValidity(string $inputPlace, string $text): void { $this->add('cv' . $inputPlace, str_replace("\n", '$[ln];', $text)); }
 
     // Insert
 	// Creates the Data only if it does not exist; otherwise, does nothing.
@@ -151,12 +152,16 @@ class WebForms
     public function delete(string $inputPlace): void { $this->add('de' . $inputPlace); }
     public function deleteParent(string $inputPlace): void { $this->add('dp' . $inputPlace); }
 
-    // Tag
+    // Tag Transformation
     public function swapTag(string $inputPlace, string $outputPlace): void { $this->add('sp' . $inputPlace, $outputPlace); }
-    public function setReflection(string $inputPlace, string $tag): void { $this->add('sR' . $inputPlace, $tag); }
-    public function setReflectionByOutputPlace(string $inputPlace, string $outputPlace): void { $this->add('iR' . $inputPlace, $outputPlace); }
+    public function setReflect(string $inputPlace, string $tag): void { $this->add('sR' . $inputPlace, $tag); }
+    public function setReflectByOutputPlace(string $inputPlace, string $outputPlace): void { $this->add('iR' . $inputPlace, $outputPlace); }
     public function setMorph(string $inputPlace, string $tag): void { $this->add('sM' . $inputPlace, $tag); }
     public function setMorphByOutputPlace(string $inputPlace, string $outputPlace): void { $this->add('iM' . $inputPlace, $outputPlace); }
+	// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// InputPlace: Only One Tag 
+	public function snapshot(string $inputPlace, string $key = '', bool $permanent = false): void { $this->add('rS' . $inputPlace, ($key === '' ? $inputPlace : $key) . ($permanent ? self::GS . '1' : '')); }
+	public function rollback(string $inputPlace, string $key = '', bool $permanent = false): void { $this->add('rB' . $inputPlace, ($key === '' ? $inputPlace : $key) . ($permanent ? self::GS . '1' : '')); }
 
     // Browser
     public function changeUrl(string $url): void { $this->add('cu', $url); }
@@ -300,6 +305,9 @@ class WebForms
     
 	// Debug
 	public function createDebugger(bool $pause = false): void { $this->add('Dc', $pause ? '1' : '0'); }
+	public function try(): void { $this->add('tr'); }
+	public function catch(): void { $this->add('ca'); }
+	public function comment(string $text): void { $this->add('//', $text); }
 
     // Service Worker
 	// To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -327,6 +335,7 @@ class WebForms
     public function loadState(string $path): void { $this->add('ls', $path); }
     public function deleteState(?string $path = null): void { $this->add('DS', $path ?? ''); }
     public function deleteAllState(): void { $this->add('DS', '*'); }
+	public function lockQueue(string|int $millisecond): void { $this->add('lq', (string)$millisecond); }
 
     // Cookie
     public function setCookie(string $key, string $value, string|int $seconds, ?string $path = null): void { $this->add('sC', $key . self::GS . $value . self::GS . (string)$seconds . ($path !== null ? self::GS . $path : '')); }
@@ -472,6 +481,24 @@ class WebForms
     {
         $this->add('SR', $cacheKey . self::GS . str_replace("\n", '$[ln];', $value) . self::GS . str_replace("\n", '$[ln];', $searchValue));
     }
+	
+	// Is Regex Replace
+	public function setFormatSaveValue(string $cacheKey, string $regex, string $replacement): void
+	{
+		$this->add('SF', $cacheKey . self::GS . $regex . self::GS . str_replace("\n", '$[ln];', $replacement));
+	}
+
+	// Operator: +, -, *, /, %, //, **
+	public function setArithmeticSaveValue(string $cacheKey, string $operator, string|int $value): void
+	{
+		$this->add('SM', $cacheKey . self::GS . $operator . self::GS . (string)$value);
+	}
+
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public function setTextOperationSaveValue(string $cacheKey, string $operation, string|int $value1, string|int $value2): void
+	{
+		$this->add('ST', $cacheKey . self::GS . $operation . self::GS . (string)$value1 . self::GS . (string)$value2);
+	}
 
     // Cache
     public function cacheId(string $inputPlace, string $key = '.'): void
@@ -614,7 +641,25 @@ class WebForms
     {
         $this->add('CR', $cacheKey . self::GS . str_replace("\n", '$[ln];', $value) . self::GS . str_replace("\n", '$[ln];', $searchValue));
     }
+	
+	// Is Regex Replace
+	public function setFormatCacheValue(string $cacheKey, string $regex, string $replacement): void
+	{
+		$this->add('CF', $cacheKey . self::GS . $regex . self::GS . str_replace("\n", '$[ln];', $replacement));
+	}
 
+	// Operator: +, -, *, /, %, //, **
+	public function setArithmeticCacheValue(string $cacheKey, string $operator, string|int $value): void
+	{
+		$this->add('CM', $cacheKey . self::GS . $operator . self::GS . (string)$value);
+	}
+
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public function setTextOperationCacheValue(string $cacheKey, string $operation, string|int $value1, string|int $value2): void
+	{
+		$this->add('CT', $cacheKey . self::GS . $operation . self::GS . (string)$value1 . self::GS . (string)$value2);
+	}
+	
     // Call
     public function loadUrl(string $inputPlace, string $url): void { $this->add('lu' . $inputPlace, $url); }
     public function runActionControls(string $actionControls, bool $withoutWebFormsSection = true, ?string $index = null, bool $useCurrentEvent = true): void { $this->add('lA', ($useCurrentEvent ? '1' : '0') . self::GS . ($withoutWebFormsSection ? '1' : '0') . self::GS . $index . self::GS . $actionControls); }
@@ -642,10 +687,10 @@ class WebForms
     public function replaceStartTag(string $inputPlace, string $value, string $newValue): void { $this->add('gt' . $inputPlace, 's' . self::GS . $value . self::GS . $newValue); }
 
     // Pre Runner
-    public function assignDelay(int $miliSecond, int $index = -1): void { $this->modifyLine($index, ':' . (string)$miliSecond . ')', false); }
-    public function assignDelayChange(int $miliSecond, int $index = -1): void { $this->modifyLine($index, ':' . (string)$miliSecond . ')', true); }
-    public function assignInterval(int $miliSecond, ?string $id = null, int $index = -1): void { $this->modifyLine($index, '(' . (string)$miliSecond . ($id !== null ? '|' . $id : '') . ')', false); }
-    public function assignIntervalChange(int $miliSecond, ?string $id = null, int $index = -1): void { $this->modifyLine($index, '(' . (string)$miliSecond . ($id !== null ? '|' . $id : '') . ')', true); }
+    public function assignDelay(int $milliSecond, int $index = -1): void { $this->modifyLine($index, ':' . (string)$milliSecond . ')', false); }
+    public function assignDelayChange(int $milliSecond, int $index = -1): void { $this->modifyLine($index, ':' . (string)$milliSecond . ')', true); }
+    public function assignInterval(int $milliSecond, ?string $id = null, int $index = -1): void { $this->modifyLine($index, '(' . (string)$milliSecond . ($id !== null ? '|' . $id : '') . ')', false); }
+    public function assignIntervalChange(int $milliSecond, ?string $id = null, int $index = -1): void { $this->modifyLine($index, '(' . (string)$milliSecond . ($id !== null ? '|' . $id : '') . ')', true); }
     public function deleteInterval(string $id): void { $this->add('Di', $id); }
     public function assignRepeat(int $count, int $index = -1): void { $this->modifyLine($index, ',' . (string)$count . ')', false); }
     public function assignRepeatChange(int $count, int $index = -1): void { $this->modifyLine($index, ',' . (string)$count . ')', true); }
@@ -733,18 +778,129 @@ class WebForms
     public function else(): WebForms { $this->add('}e'); return $this; }
     public function startBracket(): void { $this->add('{'); }
     public function endBracket(): void { $this->add('}'); }
+
+	// High-Level Methods
 	// Used Then In Condition And Loop Methods
-    public function then(?WebForms $newForm): WebForms { if ($newForm === null) return $this; $data = $newForm->getWebFormsData(); if ($data !== '' && strpos($data, "\n") !== false) { $newForm->addToUp('{'); $newForm->add('}'); } $this->appendForm($newForm); return $this; }
-    public function thenClosure(callable $configure): WebForms { $newForm = new WebForms(); $configure($newForm); $data = $newForm->getWebFormsData(); if ($data !== '' && strpos($data, "\n") !== false) { $newForm->addToUp('{'); $newForm->add('}'); } $this->appendForm($newForm); return $this; }
-    public function repeat(WebForms $newForm, int $repeat): WebForms { if ($newForm === null || $newForm->getWebFormsData() === '') return $this; $startLine = -count(explode("\n", $newForm->getWebFormsData())); $this->appendForm($newForm); $this->goTo($startLine, $repeat - 1); return $this; }
-    public function repeatWithIndex(WebForms $newForm, int $repeat, string $index): WebForms { if ($newForm === null || $newForm->getWebFormsData() === '') return $this; $this->goToIndex($index); $this->startIndex($index); $this->appendForm($newForm); if ($index === '') { $indexNumber = -1; foreach (explode("\n", $this->getWebFormsData()) as $x) { if (strpos($x, '#') === 0) $indexNumber++; } $this->goTo($indexNumber, $repeat - 1); } else { $this->goToIndex($index, $repeat - 1); } return $this; }
-    public function repeatClosure(callable $configure, int $repeat): WebForms { $newForm = new WebForms(); $configure($newForm); return $this->repeat($newForm, $repeat); }
-    public function repeatClosureWithIndex(callable $configure, int $repeat, string $index): WebForms { $newForm = new WebForms(); $configure($newForm); return $this->repeatWithIndex($newForm, $repeat, $index); }
+    public function then(?WebForms $newForm): WebForms
+    {
+        if ($newForm === null)
+            return $this;
+        $data = $newForm->getWebFormsData();
+        if ($data !== '' && strpos($data, "\n") !== false) {
+            $newForm->addToUp('{');
+            $newForm->add('}');
+        }
+        $this->appendForm($newForm);
+        return $this;
+    }
+
+    public function thenClosure(callable $configure): WebForms
+    {
+        $newForm = new WebForms();
+        $configure($newForm);
+        $data = $newForm->getWebFormsData();
+        if ($data !== '' && strpos($data, "\n") !== false) {
+            $newForm->addToUp('{');
+            $newForm->add('}');
+        }
+        $this->appendForm($newForm);
+        return $this;
+    }
+
+    public function repeat(WebForms $newForm, int $repeat): WebForms
+    {
+        if ($newForm === null || $newForm->getWebFormsData() === '')
+            return $this;
+        $startLine = -count(explode("\n", $newForm->getWebFormsData()));
+        $this->appendForm($newForm);
+        $this->goTo($startLine, $repeat - 1);
+        return $this;
+    }
+
+    public function repeatWithIndex(WebForms $newForm, int $repeat, string $index): WebForms
+    {
+        if ($newForm === null || $newForm->getWebFormsData() === '')
+            return $this;
+        $this->goToIndex($index);
+        $this->startIndex($index);
+        $this->appendForm($newForm);
+        if ($index === '') {
+            $indexNumber = -1;
+            foreach (explode("\n", $this->getWebFormsData()) as $x) {
+                if (strpos($x, '#') === 0)
+                    $indexNumber++;
+            }
+            $this->goTo($indexNumber, $repeat - 1);
+        } else {
+            $this->goToIndex($index, $repeat - 1);
+        }
+        return $this;
+    }
+
+    public function repeatClosure(callable $configure, int $repeat): WebForms
+    {
+        $newForm = new WebForms();
+        $configure($newForm);
+        return $this->repeat($newForm, $repeat);
+    }
+
+    public function repeatClosureWithIndex(callable $configure, int $repeat, string $index): WebForms
+    {
+        $newForm = new WebForms();
+        $configure($newForm);
+        return $this->repeatWithIndex($newForm, $repeat, $index);
+    }
+
+    public function isole(WebForms $newForm, string $inputPlace): WebForms
+    {
+        if ($newForm === null || $newForm->getWebFormsData() === '')
+            return $this;
+        $form = new WebForms();
+        $form->startTransientDOM($inputPlace);
+        $this->appendForm($form);
+        $newForm->endTransientDOM();
+        $this->appendForm($newForm);
+        return $this;
+    }
+
+    public function isoleClosure(callable $configure, string $inputPlace): WebForms
+    {
+        $newForm = new WebForms();
+        $configure($newForm);
+        return $this->isole($newForm, $inputPlace);
+    }
+
+    // The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+    // This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+    public function render(WebForms $newForm, string $inputPlace, string $key = '', bool $permanent = false): WebForms
+    {
+        if ($newForm === null || $newForm->getWebFormsData() === '')
+            return $this;
+        if ($key === '')
+            $key = $inputPlace;
+        $form = new WebForms();
+        $form->exist($permanent ? Fetch::cache($key) : Fetch::save($key));
+        $form->rollback($inputPlace, $key, $permanent);
+        $form->else();
+        $form->snapshot($inputPlace, $key, $permanent);
+        $form->startTransientDOM($inputPlace);
+        $this->appendForm($form);
+        $newForm->endTransientDOM();
+        $this->appendForm($newForm);
+        return $this;
+    }
+
+    public function renderClosure(callable $configure, string $inputPlace, string $key = '', bool $permanent = false): WebForms
+    {
+        $newForm = new WebForms();
+        $configure($newForm);
+        return $this->render($newForm, $inputPlace, $key, $permanent);
+    }
 
     // Async
 	// It Supports Brackets and Then
     public function async(): WebForms { $this->add('{(a)'); return $this; }
-    public function delay(string|int $miliSecond): void { $this->add('De', (string)$miliSecond); }
+    public function delay(string|int $milliSecond): void { $this->add('De', (string)$milliSecond); }
 	
 	// Option
     public function changeOption(string $name, string $value): void { $this->add('co', $name . self::GS . $value); }
@@ -921,7 +1077,7 @@ class Fetch
     public static function method(string $methodName, ?array $args = null): string { return '@cm' . $methodName . self::buildArgs($args); }
     public static function moduleMethod(string $methodName, ?array $args = null): string { return '@cM' . $methodName . self::buildArgs($args); }
     // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-	public static function wasmMethod(string $wasmLanguage, string $wasmUrl, string $methodName, ?array $args = null, string $key = '.'): string { return '@wA' . $wasmLanguage . self::RS . $wasmUrl . self::RS . $methodName . self::buildArgs($args); }
+	public static function wasmMethod(string $wasmLanguage, string $wasmUrl, string $methodName, ?array $args = null): string { return '@wA' . $wasmLanguage . self::RS . $wasmUrl . self::RS . $methodName . self::buildArgs($args); }
     
 	// Math
 	public static function math(string $methodName, ?array $args = null): string { return '@M#' . $methodName . self::buildArgs($args); }
@@ -942,7 +1098,7 @@ class Fetch
 	// Modifier: Alt, AltGraph, Control, Meta, Shift, CapsLock, NumLock, ScrollLock
     public static function getModifierState(string $modifier): string { return '@ms' . $modifier; }
 
-	// Data
+	// Date
     public const string DateYear = '@dy';
 	// Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
     public const string DateMonth = '@dm';
@@ -978,8 +1134,9 @@ class Fetch
     public static function getTextAlign(string $inputPlace): string { return '@$t' . $inputPlace; }
     public static function getNodeLength(string $inputPlace): string { return '@$l' . $inputPlace; }
     public static function getIsVisible(string $inputPlace): string { return '@$v' . $inputPlace; }
-
-	// Save
+    public static function getTagHash(string $inputPlace): string { return '@$h' . $inputPlace; }
+	
+	// Save and Cache
     public static function hasHash(string $hash): string { return '@HH' . $hash; }
     public static function cookie(string $key): string { return '@co' . $key; }
     public static function save(string $key = '.', ?string $replaceValue = null): string { return '@cs' . $key . ($replaceValue !== null ? self::RS . $replaceValue : ''); }
@@ -1067,13 +1224,10 @@ class Fetch
 
 class WasmLanguage
 {
-	// The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
     public const string C = 'c';
     public const string CPP = 'c';
     public const string Rust = 'rust';
     public const string CSharp = 'csharp';
-	// .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-    public const string CSharpMediator = 'csharp-m';
     public const string GO = 'go';
     public const string JAVA = 'java';
     public const string AssemblyScript = 'as';
@@ -1252,7 +1406,7 @@ class ExtensionWebFormsMethods
         if (str_ends_with($text, '|/') || str_ends_with($text, '//')) return $text . '/';
         return $text . '|/';
     }
-    public static function criteria(string $text, string $value): string { return strlen($text) < 1 ? $value : $text . '?' . str_replace(['|', '?'], ['$[vb];', '$[qu];'], $value); }
+    public static function criteria(string $text, string $value): string { return strlen($text) < 1 ? $value : $text . '?' . str_replace(['|', '?', '='], ['$[vb];', '$[qu];', '$[eq];'], $value); }
     public static function appendFetchReplace(string $text, string $searchValue, string $value): string { return '@;' . $searchValue . "\x1C" . $value . "\x1C" . substr($text, 1); }
     public static function lineBreak(string $text, bool $encodeLine = false): string { $encode = $encodeLine ? '$[sln];' : ''; return str_replace(["\r\n", "\n", "\r"], $encode, $text); }
     // Converts Numbers to Strings
