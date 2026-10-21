@@ -283,6 +283,15 @@ pip install WFC
 
 ---
 
+**R in CRAN** (https://cran.r-project.org/package=webformscore)
+
+CLI
+```bash
+install.packages("webformscore")
+```
+
+---
+
 **Ruby in RubyGems** (https://rubygems.org/gems/wfc)
 
 CLI
