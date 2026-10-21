@@ -1,5 +1,5 @@
-// web_forms.rs 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// web_forms.rs 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 pub mod web_forms_core {
     const GS: char = '\u{1d}';
@@ -405,6 +405,10 @@ pub mod web_forms_core {
                 Some(&format!("{}{}{}", index.to_string(), GS, if checked { "1" } else { "0" })),
             );
         }
+		pub fn set_custom_validity(&mut self, input_place: &str, text: &str) {
+			let text = text.replace("\n", "$[ln];");
+			self.add(&format!("cv{}", input_place), Some(&text));
+		}
 
         // Insert
         // Creates the Data only if it does not exist; otherwise, does nothing.
@@ -541,14 +545,14 @@ pub mod web_forms_core {
             self.add(&format!("dp{}", input_place), None);
         }
 
-        // Tag
+        // Tag Transformation
         pub fn swap_tag(&mut self, input_place: &str, output_place: &str) {
             self.add(&format!("sp{}", input_place), Some(output_place));
         }
-        pub fn set_reflection(&mut self, input_place: &str, tag: &str) {
+        pub fn set_reflect(&mut self, input_place: &str, tag: &str) {
             self.add(&format!("sR{}", input_place), Some(tag));
         }
-        pub fn set_reflection_by_output_place(&mut self, input_place: &str, output_place: &str) {
+        pub fn set_reflect_by_output_place(&mut self, input_place: &str, output_place: &str) {
             self.add(&format!("iR{}", input_place), Some(output_place));
         }
         pub fn set_morph(&mut self, input_place: &str, tag: &str) {
@@ -557,6 +561,31 @@ pub mod web_forms_core {
         pub fn set_morph_by_output_place(&mut self, input_place: &str, output_place: &str) {
             self.add(&format!("iM{}", input_place), Some(output_place));
         }
+		// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+		// InputPlace: Only One Tag
+		pub fn snapshot(&mut self, input_place: &str, key: Option<&str>, permanent: bool) {
+			let key = match key {
+				Some(k) if !k.is_empty() => k,
+				_ => input_place,
+			};
+			let suffix = if permanent { format!("{}1", GS) } else { String::new() };
+			self.add(
+				&format!("rS{}", input_place),
+				Some(&format!("{}{}", key, suffix)),
+			);
+		}
+
+		pub fn rollback(&mut self, input_place: &str, key: Option<&str>, permanent: bool) {
+			let key = match key {
+				Some(k) if !k.is_empty() => k,
+				_ => input_place,
+			};
+			let suffix = if permanent { format!("{}1", GS) } else { String::new() };
+			self.add(
+				&format!("rB{}", input_place),
+				Some(&format!("{}{}", key, suffix)),
+			);
+		}
 
         // Browser
         pub fn change_url(&mut self, url: &str) {
@@ -1745,6 +1774,17 @@ pub mod web_forms_core {
             let pause = pause.unwrap_or(false);
             self.add("Dc", Some(if pause { "1" } else { "0" }));
         }
+		pub fn try_(&mut self) {
+			self.add("tr", None);
+		}
+
+		pub fn catch(&mut self) {
+			self.add("ca", None);
+		}
+
+		pub fn comment(&mut self, text: &str) {
+			self.add("//", Some(text));
+		}
 
         // Service Worker
         // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -1876,6 +1916,12 @@ pub mod web_forms_core {
         pub fn delete_all_state(&mut self) {
             self.add("DS", Some("*"));
         }
+		pub fn lock_queue(&mut self, millisecond: &str) {
+			self.add("lq", Some(millisecond));
+		}
+		pub fn lock_queue_ms(&mut self, millisecond: i32) {
+			self.lock_queue(&millisecond.to_string());
+		}
 
         // Cookie
         pub fn set_cookie(
@@ -2036,6 +2082,56 @@ pub mod web_forms_core {
                 Some(&format!("{}{}{}{}{}", cache_key, GS, value, GS, search_value)),
             );
         }
+		// Is Regex Replace
+		pub fn set_format_save_value(&mut self, cache_key: &str, regex: &str, replacement: &str) {
+			let replacement = replacement.replace("\n", "$[ln];");
+			self.add(
+				"SF",
+				Some(&format!("{}{}{}{}{}", cache_key, GS, regex, GS, replacement)),
+			);
+		}
+
+		// Operator: +, -, *, /, %, //, **
+		pub fn set_arithmetic_save_value(&mut self, cache_key: &str, operator: &str, value: &str) {
+			self.add(
+				"SM",
+				Some(&format!("{}{}{}{}{}", cache_key, GS, operator, GS, value)),
+			);
+		}
+		pub fn set_arithmetic_save_value_int(&mut self, cache_key: &str, operator: &str, value: i32) {
+			self.set_arithmetic_save_value(cache_key, operator, &value.to_string());
+		}
+
+		// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+		pub fn set_text_operation_save_value(
+			&mut self,
+			cache_key: &str,
+			operation: &str,
+			value1: &str,
+			value2: &str,
+		) {
+			self.add(
+				"ST",
+				Some(&format!(
+					"{}{}{}{}{}{}{}",
+					cache_key, GS, operation, GS, value1, GS, value2
+				)),
+			);
+		}
+		pub fn set_text_operation_save_value_int(
+			&mut self,
+			cache_key: &str,
+			operation: &str,
+			value1: i32,
+			value2: i32,
+		) {
+			self.set_text_operation_save_value(
+				cache_key,
+				operation,
+				&value1.to_string(),
+				&value2.to_string(),
+			);
+		}
 
         // Cache
         pub fn cache_id(&mut self, input_place: &str, key: Option<&str>) {
@@ -2175,6 +2271,56 @@ pub mod web_forms_core {
                 Some(&format!("{}{}{}{}{}", cache_key, GS, value, GS, search_value)),
             );
         }
+		// Is Regex Replace
+		pub fn set_format_cache_value(&mut self, cache_key: &str, regex: &str, replacement: &str) {
+			let replacement = replacement.replace("\n", "$[ln];");
+			self.add(
+				"CF",
+				Some(&format!("{}{}{}{}{}", cache_key, GS, regex, GS, replacement)),
+			);
+		}
+
+		// Operator: +, -, *, /, %, //, **
+		pub fn set_arithmetic_cache_value(&mut self, cache_key: &str, operator: &str, value: &str) {
+			self.add(
+				"CM",
+				Some(&format!("{}{}{}{}{}", cache_key, GS, operator, GS, value)),
+			);
+		}
+		pub fn set_arithmetic_cache_value_int(&mut self, cache_key: &str, operator: &str, value: i32) {
+			self.set_arithmetic_cache_value(cache_key, operator, &value.to_string());
+		}
+
+		// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+		pub fn set_text_operation_cache_value(
+			&mut self,
+			cache_key: &str,
+			operation: &str,
+			value1: &str,
+			value2: &str,
+		) {
+			self.add(
+				"CT",
+				Some(&format!(
+					"{}{}{}{}{}{}{}",
+					cache_key, GS, operation, GS, value1, GS, value2
+				)),
+			);
+		}
+		pub fn set_text_operation_cache_value_int(
+			&mut self,
+			cache_key: &str,
+			operation: &str,
+			value1: i32,
+			value2: i32,
+		) {
+			self.set_text_operation_cache_value(
+				cache_key,
+				operation,
+				&value1.to_string(),
+				&value2.to_string(),
+			);
+		}
 
         // Call
         pub fn load_url(&mut self, input_place: &str, url: &str) {
@@ -2587,18 +2733,18 @@ pub mod web_forms_core {
         }
 
         // Pre Runner
-        pub fn assign_delay(&mut self, mili_second: i32, index: Option<i32>) {
+        pub fn assign_delay(&mut self, milli_second: i32, index: Option<i32>) {
             let index = index.unwrap_or(-1);
             let current_line = self.get_line_by_index(index);
             if current_line.is_empty() {
                 return;
             }
             let parts: Vec<&str> = current_line.splitn(2, '=').collect();
-            let new_name = format!(":{}){}", mili_second, parts[0]);
+            let new_name = format!(":{}){}", milli_second, parts[0]);
             let new_value = if parts.len() > 1 { parts[1] } else { "" };
             self.update_line_by_index(index, &new_name, new_value);
         }
-        pub fn assign_delay_change(&mut self, mili_second: i32, index: Option<i32>) {
+        pub fn assign_delay_change(&mut self, milli_second: i32, index: Option<i32>) {
             let index = index.unwrap_or(-1);
             let current_line = self.get_line_by_index(index);
             if current_line.is_empty() {
@@ -2610,11 +2756,11 @@ pub mod web_forms_core {
                 let closing_bracket = current_name.find(')').unwrap();
                 current_name = current_name[closing_bracket + 1..].to_string();
             }
-            let new_name = format!(":{}){}", mili_second, current_name);
+            let new_name = format!(":{}){}", milli_second, current_name);
             let new_value = if parts.len() > 1 { parts[1] } else { "" };
             self.update_line_by_index(index, &new_name, new_value);
         }
-        pub fn assign_interval(&mut self, mili_second: i32, id: Option<&str>, index: Option<i32>) {
+        pub fn assign_interval(&mut self, milli_second: i32, id: Option<&str>, index: Option<i32>) {
             let index = index.unwrap_or(-1);
             let current_line = self.get_line_by_index(index);
             if current_line.is_empty() {
@@ -2625,13 +2771,13 @@ pub mod web_forms_core {
                 Some(i) if !i.is_empty() => format!("|{}", i),
                 _ => String::new(),
             };
-            let new_name = format!("({}{}){}", mili_second, id_part, parts[0]);
+            let new_name = format!("({}{}){}", milli_second, id_part, parts[0]);
             let new_value = if parts.len() > 1 { parts[1] } else { "" };
             self.update_line_by_index(index, &new_name, new_value);
         }
         pub fn assign_interval_change(
             &mut self,
-            mili_second: i32,
+            milli_second: i32,
             id: Option<&str>,
             index: Option<i32>,
         ) {
@@ -2650,7 +2796,7 @@ pub mod web_forms_core {
                 Some(i) if !i.is_empty() => format!("|{}", i),
                 _ => String::new(),
             };
-            let new_name = format!("({}{}){}", mili_second, id_part, current_name);
+            let new_name = format!("({}{}){}", milli_second, id_part, current_name);
             let new_value = if parts.len() > 1 { parts[1] } else { "" };
             self.update_line_by_index(index, &new_name, new_value);
         }
@@ -2767,6 +2913,9 @@ pub mod web_forms_core {
                 )),
             );
         }
+		pub fn message_text_only(&mut self, text: &str) {
+			self.message(text, None, None);
+		}
         pub fn message_i32(&mut self, text: &str, type_: &str, duration: i32) {
             self.message(text, Some(type_), Some(&duration.to_string()));
         }
@@ -3146,6 +3295,8 @@ pub mod web_forms_core {
         pub fn end_bracket(&mut self) {
             self.add("}", None);
         }
+		
+		// High-Level Methods
         // Used Then In Condition And Loop Methods
         pub fn then(&mut self, new_form: WebForms) -> &mut Self {
             let data = new_form.get_web_forms_data();
@@ -3227,6 +3378,90 @@ pub mod web_forms_core {
             self.repeat_with_index(new_form, repeat, index);
 			self
         }
+		
+		pub fn isole(&mut self, mut new_form: WebForms, input_place: &str) -> &mut Self {
+			// `newForm == null` check is omitted: in Rust `WebForms` is passed by value and cannot be null.
+			let body_data = new_form.get_web_forms_data();
+
+			if body_data.is_empty() {
+				return self;
+			}
+
+			let mut form = WebForms::new();
+			form.start_transient_dom(input_place);
+
+			self.append_form(&form);
+			new_form.end_transient_dom();
+			self.append_form(&new_form);
+
+			self
+		}
+
+		pub fn isole_with<F: FnOnce(&mut WebForms)>(
+			&mut self,
+			configure: F,
+			input_place: &str,
+		) -> &mut Self {
+			let mut new_form = WebForms::new();
+			configure(&mut new_form);
+			self.isole(new_form, input_place);
+			self
+		}
+
+		// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+		// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+		pub fn render(
+			&mut self,
+			mut new_form: WebForms,
+			input_place: &str,
+			key: Option<&str>,
+			permanent: bool,
+		) -> &mut Self {
+			// `newForm == null` check is omitted: in Rust `WebForms` is passed by value and cannot be null.
+			let body_data = new_form.get_web_forms_data();
+
+			if body_data.is_empty() {
+				return self;
+			}
+
+			let key: &str = match key {
+				Some(k) if !k.is_empty() => k,
+				_ => input_place,
+			};
+
+			let mut form = WebForms::new();
+
+			let fetch_key = if permanent {
+				fetch::cache(key)
+			} else {
+				fetch::save(key)
+			};
+			form.exist(&fetch_key, None);
+			form.rollback(input_place, Some(key), permanent);
+			form.else_();
+			form.snapshot(input_place, Some(key), permanent);
+
+			form.start_transient_dom(input_place);
+
+			self.append_form(&form);
+			new_form.end_transient_dom();
+			self.append_form(&new_form);
+
+			self
+		}
+
+		pub fn render_with<F: FnOnce(&mut WebForms)>(
+			&mut self,
+			configure: F,
+			input_place: &str,
+			key: Option<&str>,
+			permanent: bool,
+		) -> &mut Self {
+			let mut new_form = WebForms::new();
+			configure(&mut new_form);
+			self.render(new_form, input_place, key, permanent);
+			self
+		}
 
         // Async
         // It Supports Brackets and Then
@@ -3234,11 +3469,11 @@ pub mod web_forms_core {
             self.add("{(a)", None);
 			self
         }
-        pub fn delay(&mut self, mili_second: &str) {
-            self.add("De", Some(mili_second));
+        pub fn delay(&mut self, milli_second: &str) {
+            self.add("De", Some(milli_second));
         }
-        pub fn delay_i32(&mut self, mili_second: i32) {
-            self.delay(&mili_second.to_string());
+        pub fn delay_i32(&mut self, milli_second: i32) {
+            self.delay(&milli_second.to_string());
         }
 
         // Option
@@ -3835,21 +4070,20 @@ pub mod web_forms_core {
         }
 
         // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-        pub fn wasm_method(
-            wasm_language: &str,
-            wasm_url: &str,
-            method_name: &str,
-            args: Option<&[String]>,
-            _key: Option<&str>,
-        ) -> String {
-            let mut return_value = format!("@wA{}{}{}{}{}", wasm_language, RS, wasm_url, RS, method_name);
-            if let Some(a) = args {
-                if !a.is_empty() {
-                    return_value.push_str(&format!("{}{}", RS, a.join(&US.to_string())));
-                }
-            }
-            return_value
-        }
+		pub fn wasm_method(
+			wasm_language: &str,
+			wasm_url: &str,
+			method_name: &str,
+			args: Option<&[String]>,
+		) -> String {
+			let mut return_value = format!("@wA{}{}{}{}{}", wasm_language, RS, wasm_url, RS, method_name);
+			if let Some(a) = args {
+				if !a.is_empty() {
+					return_value.push_str(&format!("{}{}", RS, a.join(&US.to_string())));
+				}
+			}
+			return_value
+		}
 
         pub fn script(script_text: &str) -> String {
             format!("@_{}", script_text.replace("\n", "$[ln];"))
@@ -3915,7 +4149,7 @@ pub mod web_forms_core {
             return_value
         }
 
-        // Data
+        // Date
         pub const DATE_YEAR: &str = "@dy";
         // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
         pub const DATE_MONTH: &str = "@dm";
@@ -3991,8 +4225,11 @@ pub mod web_forms_core {
         pub fn get_is_visible(input_place: &str) -> String {
             format!("@$V{}", input_place)
         }
-
-        // Save
+		pub fn get_tag_hash(input_place: &str) -> String {
+			format!("@$H{}", input_place)
+		}
+		
+        // Save and Cache
         pub fn has_hash(hash: &str) -> String {
             format!("@HH{}", hash)
         }
@@ -4137,13 +4374,10 @@ pub mod web_forms_core {
     }
 
     pub mod wasm_language {
-        // The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
         pub const C: &str = "c";
         pub const CPP: &str = "c";
         pub const RUST: &str = "rust";
         pub const CSHARP: &str = "csharp";
-        // .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-        pub const CSHARP_MEDIATOR: &str = "csharp-m";
         pub const GO: &str = "go";
         pub const JAVA: &str = "java";
         pub const ASSEMBLY_SCRIPT: &str = "as";
@@ -4349,7 +4583,7 @@ pub mod web_forms_core {
             format!(
                 "{}?{}",
                 self,
-                value.replace("|", "$[vb];").replace("?", "$[qu];")
+                value.replace("|", "$[vb];").replace("?", "$[qu];").replace("=", "$[eq];")
             )
         }
 
