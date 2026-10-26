@@ -1,5 +1,5 @@
-# WebForms.jl 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-# Compatible with WebFormsJS version 2.1
+# WebForms.jl 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+# Compatible with WebFormsJS version 2.2
 
 module WebFormsCore
 
@@ -157,6 +157,7 @@ set_selected_index(w::Form, input_place::AbstractString, index::Integer) = set_s
 set_checked_value(w::Form, input_place::AbstractString, value::AbstractString, checked::Bool) = add(w, "ks" * input_place, string(value, GS, checked ? "1" : "0"))
 set_checked_index(w::Form, input_place::AbstractString, index::AbstractString, checked::Bool) = add(w, "ki" * input_place, string(index, GS, checked ? "1" : "0"))
 set_checked_index(w::Form, input_place::AbstractString, index::Integer, checked::Bool) = set_checked_index(w, input_place, string(index), checked)
+set_custom_validity(w::Form, input_place::AbstractString, text::AbstractString) = add(w, "cv" * input_place, replace(text, "\n" => "\$[ln];"))
 
 # Insert
 # Creates the Data only if it does not exist; otherwise, does nothing.
@@ -190,12 +191,16 @@ delete_attribute(w::Form, input_place::AbstractString, attribute::AbstractString
 delete(w::Form, input_place::AbstractString) = add(w, "de" * input_place)
 delete_parent(w::Form, input_place::AbstractString) = add(w, "dp" * input_place)
 
-# Tag
+# Tag Transformation
 swap_tag(w::Form, input_place::AbstractString, output_place::AbstractString) = add(w, "sp" * input_place, output_place)
-set_reflection(w::Form, input_place::AbstractString, tag::AbstractString) = add(w, "sR" * input_place, tag)
-set_reflection_by_output_place(w::Form, input_place::AbstractString, output_place::AbstractString) = add(w, "iR" * input_place, output_place)
+set_reflect(w::Form, input_place::AbstractString, tag::AbstractString) = add(w, "sR" * input_place, tag)
+set_reflect_by_output_place(w::Form, input_place::AbstractString, output_place::AbstractString) = add(w, "iR" * input_place, output_place)
 set_morph(w::Form, input_place::AbstractString, tag::AbstractString) = add(w, "sM" * input_place, tag)
 set_morph_by_output_place(w::Form, input_place::AbstractString, output_place::AbstractString) = add(w, "iM" * input_place, output_place)
+# The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+# InputPlace: Only One Tag 
+snapshot(w::Form, input_place::AbstractString, key::AbstractString = "", permanent::Bool = false) = add(w, "rS" * input_place, (isempty(key) ? input_place : key) * (permanent ? GS * "1" : ""))
+rollback(w::Form, input_place::AbstractString, key::AbstractString = "", permanent::Bool = false) = add(w, "rB" * input_place, (isempty(key) ? input_place : key) * (permanent ? GS * "1" : ""))
 
 # Browser
 change_url(w::Form, url::AbstractString) = add(w, "cu", url)
@@ -437,6 +442,9 @@ assert_equal_by_output_place(w::Form, input_place::AbstractString, output_place:
 
 # Debug
 create_debugger(w::Form, pause::Bool=false) = add(w, "Dc", pause ? "1" : "0")
+try_(w::Form) = add(w, "tr")
+catch_(w::Form) = add(w, "ca")
+comment(w::Form, text::AbstractString) = add(w, "//", text)
 
 # Service Worker
 # To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -468,6 +476,8 @@ save_state(w::Form, path::Union{Nothing, AbstractString}=nothing, title::Union{N
 load_state(w::Form, path::AbstractString) = add(w, "ls", path)
 delete_state(w::Form, path::Union{Nothing, AbstractString}=nothing) = add(w, "DS", path)
 delete_all_state(w::Form) = add(w, "DS", "*")
+lock_queue(w::Form, millisecond::AbstractString) = add(w, "lq", millisecond)
+lock_queue(w::Form, millisecond::Integer) = lock_queue(w, string(millisecond))
 
 # Cookie
 set_cookie(w::Form, key::AbstractString, value::AbstractString, seconds::AbstractString, path::Union{Nothing, AbstractString}=nothing) = add(w, "sC", string(key, GS, value, GS, seconds, !isnothing(path) && !isempty(path) ? string(GS, path) : ""))
@@ -503,6 +513,14 @@ add_save_value(w::Form, cache_key::AbstractString, value::AbstractString) = add(
 insert_save_value(w::Form, cache_key::AbstractString, value::AbstractString) = add(w, "SI", string(cache_key, GS, replace(value, "\n" => "\$[ln];")))
 append_save_value(w::Form, cache_key::AbstractString, value::AbstractString) = add(w, "SP", string(cache_key, GS, replace(value, "\n" => "\$[ln];")))
 replace_save_value(w::Form, cache_key::AbstractString, search_value::AbstractString, value::AbstractString) = add(w, "SR", string(cache_key, GS, replace(value, "\n" => "\$[ln];"), GS, replace(search_value, "\n" => "\$[ln];")))
+# Is Regex Replace
+set_format_save_value(w::Form, cache_key::AbstractString, regex::AbstractString, replacement::AbstractString) = add(w, "SF", string(cache_key, GS, regex, GS, replace(replacement, "\n" => "\$[ln];")))
+# Operator: +, -, *, /, %, //, **
+set_arithmetic_save_value(w::Form, cache_key::AbstractString, operator::AbstractString, value::AbstractString) = add(w, "SM", string(cache_key, GS, operator, GS, value))
+set_arithmetic_save_value(w::Form, cache_key::AbstractString, operator::AbstractString, value::Integer) = set_arithmetic_save_value(w, cache_key, operator, string(value))
+# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+set_text_operation_save_value(w::Form, cache_key::AbstractString, operation::AbstractString, value1::AbstractString, value2::AbstractString) = add(w, "ST", string(cache_key, GS, operation, GS, value1, GS, value2))
+set_text_operation_save_value(w::Form, cache_key::AbstractString, operation::AbstractString, value1::Integer, value2::Integer) = set_text_operation_save_value(w, cache_key, operation, string(value1), string(value2))
 
 # Cache
 cache_id(w::Form, input_place::AbstractString, key::AbstractString=".") = add(w, "@ci" * input_place, key)
@@ -536,6 +554,14 @@ add_cache_value(w::Form, cache_key::AbstractString, value::AbstractString) = add
 insert_cache_value(w::Form, cache_key::AbstractString, value::AbstractString) = add(w, "CI", string(cache_key, GS, replace(value, "\n" => "\$[ln];")))
 append_cache_value(w::Form, cache_key::AbstractString, value::AbstractString) = add(w, "CP", string(cache_key, GS, replace(value, "\n" => "\$[ln];")))
 replace_cache_value(w::Form, cache_key::AbstractString, search_value::AbstractString, value::AbstractString) = add(w, "CR", string(cache_key, GS, replace(value, "\n" => "\$[ln];"), GS, replace(search_value, "\n" => "\$[ln];")))
+# Is Regex Replace
+set_format_cache_value(w::Form, cache_key::AbstractString, regex::AbstractString, replacement::AbstractString) = add(w, "CF", string(cache_key, GS, regex, GS, replace(replacement, "\n" => "\$[ln];")))
+# Operator: +, -, *, /, %, //, **
+set_arithmetic_cache_value(w::Form, cache_key::AbstractString, operator::AbstractString, value::AbstractString) = add(w, "CM", string(cache_key, GS, operator, GS, value))
+set_arithmetic_cache_value(w::Form, cache_key::AbstractString, operator::AbstractString, value::Integer) = set_arithmetic_cache_value(w, cache_key, operator, string(value))
+# Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+set_text_operation_cache_value(w::Form, cache_key::AbstractString, operation::AbstractString, value1::AbstractString, value2::AbstractString) = add(w, "CT", string(cache_key, GS, operation, GS, value1, GS, value2))
+set_text_operation_cache_value(w::Form, cache_key::AbstractString, operation::AbstractString, value1::Integer, value2::Integer) = set_text_operation_cache_value(w, cache_key, operation, string(value1), string(value2))
 
 # Call
 load_url(w::Form, input_place::AbstractString, url::AbstractString) = add(w, "lu" * input_place, url)
@@ -607,20 +633,20 @@ replace_(w::Form, input_place::AbstractString, value::AbstractString, new_value:
 replace_start_tag(w::Form, input_place::AbstractString, value::AbstractString, new_value::AbstractString) = add(w, "gt" * input_place, string("s", GS, value, GS, new_value))
 
 # Pre Runner
-function assign_delay(w::Form, mili_second::Integer, index::Integer=-1)
+function assign_delay(w::Form, milli_second::Integer, index::Integer=-1)
     current_line = get_line_by_index(w, index)
     if isempty(current_line)
         return
     end
 
     parts = split(current_line, '='; limit=2)
-    new_name = ":" * string(mili_second) * ")" * parts[1]
+    new_name = ":" * string(milli_second) * ")" * parts[1]
     new_value = length(parts) > 1 ? String(parts[2]) : ""
 
     update_line_by_index(w, index, new_name, new_value)
 end
 
-function assign_delay_change(w::Form, mili_second::Integer, index::Integer=-1)
+function assign_delay_change(w::Form, milli_second::Integer, index::Integer=-1)
     current_line = get_line_by_index(w, index)
     if isempty(current_line)
         return
@@ -634,26 +660,26 @@ function assign_delay_change(w::Form, mili_second::Integer, index::Integer=-1)
         current_name = current_name[closing_bracket + 1:end]
     end
 
-    new_name = ":" * string(mili_second) * ")" * current_name
+    new_name = ":" * string(milli_second) * ")" * current_name
     new_value = length(parts) > 1 ? String(parts[2]) : ""
 
     update_line_by_index(w, index, new_name, new_value)
 end
 
-function assign_interval(w::Form, mili_second::Integer, id::Union{Nothing, AbstractString}=nothing, index::Integer=-1)
+function assign_interval(w::Form, milli_second::Integer, id::Union{Nothing, AbstractString}=nothing, index::Integer=-1)
     current_line = get_line_by_index(w, index)
     if isempty(current_line)
         return
     end
 
     parts = split(current_line, '='; limit=2)
-    new_name = "(" * string(mili_second) * ((!isnothing(id) && !isempty(id)) ? "|" * id : "") * ")" * parts[1]
+    new_name = "(" * string(milli_second) * ((!isnothing(id) && !isempty(id)) ? "|" * id : "") * ")" * parts[1]
     new_value = length(parts) > 1 ? String(parts[2]) : ""
 
     update_line_by_index(w, index, new_name, new_value)
 end
 
-function assign_interval_change(w::Form, mili_second::Integer, id::Union{Nothing, AbstractString}=nothing, index::Integer=-1)
+function assign_interval_change(w::Form, milli_second::Integer, id::Union{Nothing, AbstractString}=nothing, index::Integer=-1)
     current_line = get_line_by_index(w, index)
     if isempty(current_line)
         return
@@ -667,7 +693,7 @@ function assign_interval_change(w::Form, mili_second::Integer, id::Union{Nothing
         current_name = current_name[closing_bracket + 1:end]
     end
 
-    new_name = "(" * string(mili_second) * ((!isnothing(id) && !isempty(id)) ? "|" * id : "") * ")" * current_name
+    new_name = "(" * string(milli_second) * ((!isnothing(id) && !isempty(id)) ? "|" * id : "") * ")" * current_name
     new_value = length(parts) > 1 ? String(parts[2]) : ""
 
     update_line_by_index(w, index, new_name, new_value)
@@ -858,6 +884,7 @@ end
 start_bracket(w::Form) = add(w, "{")
 end_bracket(w::Form) = add(w, "}")
 
+# High-Level Methods
 # Used Then In Condition And Loop Methods
 function then_(w::Form, new_form::Form)
     data = !isnothing(new_form) ? get_web_forms_data(new_form) : nothing
@@ -954,6 +981,47 @@ function repeat_(w::Form, configure::Function, repeat::Integer, index::AbstractS
     return repeat_(w, new_form, repeat, index)
 end
 
+# The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+# This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+function render(w::Form, new_form::Form, input_place::AbstractString;
+                key::AbstractString = "", permanent::Bool = false)
+    if isnothing(new_form)
+        return w
+    end
+
+    body_data = get_web_forms_data(new_form)
+
+    if isempty(body_data)
+        return w
+    end
+
+    if isempty(key)
+        key = input_place
+    end
+
+    form = WebForms()
+
+    exist(form, permanent ? fetch_cache(key) : fetch_save(key))
+    rollback(form, input_place, key, permanent)
+    else_(form)                                  # `else` is a Julia keyword
+    snapshot(form, input_place, key, permanent)
+
+    start_transient_dom(form, input_place)
+
+    append_form(w, form)
+    end_transient_dom(new_form)
+    append_form(w, new_form)
+
+    return w
+end
+
+function render(w::Form, configure::Function, input_place::AbstractString;
+                key::AbstractString = "", permanent::Bool = false)
+    new_form = WebForms()
+    configure(new_form)
+    return render(w, new_form, input_place; key = key, permanent = permanent)
+end
+
 # Async
 # It Supports Brackets and Then
 function async_(w::Form)
@@ -961,8 +1029,8 @@ function async_(w::Form)
     return w
 end
 
-delay(w::Form, mili_second::AbstractString) = add(w, "De", mili_second)
-delay(w::Form, mili_second::Integer) = delay(w, string(mili_second))
+delay(w::Form, milli_second::AbstractString) = add(w, "De", milli_second)
+delay(w::Form, milli_second::Integer) = delay(w, string(milli_second))
 
 # Option
 change_option(w::Form, name::AbstractString, value::AbstractString) = add(w, "co", string(name, GS, value))
@@ -1203,7 +1271,7 @@ function module_method(method_name::AbstractString, args::Union{Nothing, Vector{
 end
 
 # MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-function wasm_method(wasm_language::AbstractString, wasm_url::AbstractString, method_name::AbstractString, args::Union{Nothing, Vector{Any}}=nothing, key::AbstractString=".")
+function wasm_method(wasm_language::AbstractString, wasm_url::AbstractString, method_name::AbstractString, args::Union{Nothing, Vector{Any}}=nothing)
     return_value = "@wA" * wasm_language * RS * wasm_url * RS * method_name
 
     if !isnothing(args)
@@ -1240,7 +1308,7 @@ function math(method_name::AbstractString, args::Union{Nothing, Vector{Any}}=not
     return return_value
 end
 
-# Data
+# Date
 const DATE_YEAR = "@dy"
 # Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1
 const DATE_MONTH = "@dm"
@@ -1276,8 +1344,9 @@ get_index(input_place::AbstractString) = "@\$I" * input_place
 get_text_align(input_place::AbstractString) = "@\$T" * input_place
 get_node_length(input_place::AbstractString) = "@\$L" * input_place
 get_is_visible(input_place::AbstractString) = "@\$V" * input_place
+get_tag_hash(input_place::AbstractString) = "@\$H" * input_place
 
-# Save
+# Save and cache
 has_hash(hash::AbstractString) = "@HH" * hash
 cookie(key::AbstractString) = "@co" * key
 save(key::AbstractString=".") = "@cs" * key
@@ -1368,13 +1437,10 @@ end
 
 module WasmLanguage
 
-# The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
 const C = "c"
 const CPP = "c"
 const Rust = "rust"
 const CSharp = "csharp"
-# .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-const CSharpMediator = "csharp-m"
 const GO = "go"
 const JAVA = "java"
 const AssemblyScript = "as"
@@ -1574,7 +1640,13 @@ function criteria(text::AbstractString, value::AbstractString)
         return value
     end
 
-    return text * "?" * replace(replace(value, "|" => "\$[vb];"), "?" => "\$[qu];")
+    return text * "?" * replace(
+        replace(
+            replace(value, "|" => "\$[vb];"),
+            "?" => "\$[qu];"
+        ),
+        "=" => "\$[eq];"
+    )
 end
 
 function append_fetch_replace(text::AbstractString, search_value::AbstractString, value::AbstractString)
