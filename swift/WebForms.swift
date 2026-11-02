@@ -1,5 +1,5 @@
-// WebForms.swift 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.swift 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 import Foundation
 
@@ -82,7 +82,7 @@ class WebForms {
     public func addId(_ inputPlace: String, _ id: String) { add("ai" + inputPlace, id) }
     public func addName(_ inputPlace: String, _ name: String) { add("an" + inputPlace, name) }
     public func addValue(_ inputPlace: String, _ value: String) { add("av" + inputPlace, value) }
-    public func addClass(_ inputPlace: String, _ `class`: String) { add("ac" + inputPlace, `class`) }
+    public func addClass(_ inputPlace: String, _ class_: String) { add("ac" + inputPlace, class_) }
     public func addStyle(_ inputPlace: String, _ style: String) { add("as" + inputPlace, style) }
     public func addStyle(_ inputPlace: String, _ name: String, _ value: String) { add("as" + inputPlace, name + ":" + value) }
     public func addOptionTag(_ inputPlace: String, _ text: String, _ value: String, _ selected: Bool = false) { add("ao" + inputPlace, value + WebForms.GS + text + (selected ? WebForms.GS + "1" : "")) }
@@ -103,7 +103,7 @@ class WebForms {
     public func setId(_ inputPlace: String, _ id: String) { add("si" + inputPlace, id) }
     public func setName(_ inputPlace: String, _ name: String) { add("sn" + inputPlace, name) }
     public func setValue(_ inputPlace: String, _ value: String) { add("sv" + inputPlace, value) }
-    public func setClass(_ inputPlace: String, _ `class`: String) { add("sc" + inputPlace, `class`) }
+    public func setClass(_ inputPlace: String, _ class_: String) { add("sc" + inputPlace, class_) }
     public func setStyle(_ inputPlace: String, _ style: String) { add("ss" + inputPlace, style) }
     public func setStyle(_ inputPlace: String, _ name: String, _ value: String) { add("ss" + inputPlace, name + ":" + value) }
     public func setOptionTag(_ inputPlace: String, _ text: String, _ value: String, _ selected: Bool = false) { add("so" + inputPlace, value + WebForms.GS + text + (selected ? WebForms.GS + "1" : "")) }
@@ -138,13 +138,16 @@ class WebForms {
     public func setCheckedValue(_ inputPlace: String, _ value: String, _ checked: Bool) { add("ks" + inputPlace, value + WebForms.GS + (checked ? "1" : "0")) }
     public func setCheckedIndex(_ inputPlace: String, _ index: String, _ checked: Bool) { add("ki" + inputPlace, index + WebForms.GS + (checked ? "1" : "0")) }
     public func setCheckedIndex(_ inputPlace: String, _ index: Int, _ checked: Bool) { setCheckedIndex(inputPlace, String(index), checked) }
+	public func setCustomValidity(_ inputPlace: String, _ text: String) {
+		add("cv" + inputPlace, text.replacingOccurrences(of: "\n", with: "$[ln];"))
+	}
 
     // Insert
     // Creates the Data only if it does not exist; otherwise, does nothing.
     public func insertId(_ inputPlace: String, _ id: String) { add("ii" + inputPlace, id) }
     public func insertName(_ inputPlace: String, _ name: String) { add("in" + inputPlace, name) }
     public func insertValue(_ inputPlace: String, _ value: String) { add("iv" + inputPlace, value) }
-    public func insertClass(_ inputPlace: String, _ `class`: String) { add("ic" + inputPlace, `class`) }
+    public func insertClass(_ inputPlace: String, _ class_: String) { add("ic" + inputPlace, class_) }
     public func insertStyle(_ inputPlace: String, _ style: String) { add("is" + inputPlace, style) }
     public func insertStyle(_ inputPlace: String, _ name: String, _ value: String) { add("is" + inputPlace, name + ":" + value) }
     public func insertOptionTag(_ inputPlace: String, _ text: String, _ value: String, _ selected: Bool = false) { add("io" + inputPlace, value + WebForms.GS + text + (selected ? WebForms.GS + "1" : "")) }
@@ -171,12 +174,21 @@ class WebForms {
     public func delete(_ inputPlace: String) { add("de" + inputPlace) }
     public func deleteParent(_ inputPlace: String) { add("dp" + inputPlace) }
 
-    // Tag
+    // Tag Transformation
     public func swapTag(_ inputPlace: String, _ outputPlace: String) { add("sp" + inputPlace, outputPlace) }
-    public func setReflection(_ inputPlace: String, _ tag: String) { add("sR" + inputPlace, tag) }
-    public func setReflectionByOutputPlace(_ inputPlace: String, _ outputPlace: String) { add("iR" + inputPlace, outputPlace) }
+    public func setReflect(_ inputPlace: String, _ tag: String) { add("sR" + inputPlace, tag) }
+    public func setReflectByOutputPlace(_ inputPlace: String, _ outputPlace: String) { add("iR" + inputPlace, outputPlace) }
     public func setMorph(_ inputPlace: String, _ tag: String) { add("sM" + inputPlace, tag) }
     public func setMorphByOutputPlace(_ inputPlace: String, _ outputPlace: String) { add("iM" + inputPlace, outputPlace) }
+	// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// InputPlace: Only One Tag 
+	public func snapshot(_ inputPlace: String, _ key: String = "", _ permanent: Bool = false) {
+		add("rS" + inputPlace, (key.isEmpty ? inputPlace : key) + (permanent ? WebForms.GS + "1" : ""))
+	}
+
+	public func rollback(_ inputPlace: String, _ key: String = "", _ permanent: Bool = false) {
+		add("rB" + inputPlace, (key.isEmpty ? inputPlace : key) + (permanent ? WebForms.GS + "1" : ""))
+	}
 
     // Browser
     public func changeUrl(_ url: String) { add("cu", url) }
@@ -389,6 +401,9 @@ class WebForms {
 
     // Debug
     public func createDebugger(_ pause: Bool = false) { add("Dc", pause ? "1" : "0") }
+	public func try() { add("tr") }
+	public func catch_() { add("ca") }
+	public func comment(_ text: String) { add("//", text) }
 
     // Service Worker
     // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -420,6 +435,8 @@ class WebForms {
     public func loadState(_ path: String) { add("ls", path) }
     public func deleteState(_ path: String? = nil) { add("DS", path) }
     public func deleteAllState() { add("DS", "*") }
+	public func lockQueue(_ millisecond: String) { add("lq", millisecond) }
+	public func lockQueue(_ millisecond: Int) { lockQueue(String(millisecond)) }
 
     // Cookie
     public func setCookie(_ key: String, _ value: String, _ seconds: String, _ path: String? = nil) { add("sC", key + WebForms.GS + value + WebForms.GS + seconds + (!(path ?? "").isEmpty ? WebForms.GS + path! : "")) }
@@ -455,6 +472,14 @@ class WebForms {
     public func insertSaveValue(_ cacheKey: String, _ value: String) { add("SI", cacheKey + WebForms.GS + value.replacingOccurrences(of: "\n", with: "$[ln];")) }
     public func appendSaveValue(_ cacheKey: String, _ value: String) { add("SP", cacheKey + WebForms.GS + value.replacingOccurrences(of: "\n", with: "$[ln];")) }
     public func replaceSaveValue(_ cacheKey: String, _ searchValue: String, _ value: String) { add("SR", cacheKey + WebForms.GS + value.replacingOccurrences(of: "\n", with: "$[ln];") + WebForms.GS + searchValue.replacingOccurrences(of: "\n", with: "$[ln];")) }
+	// Is Regex Replace
+	public func setFormatSaveValue(_ cacheKey: String, _ regex: String, _ replacement: String) { add("SF", cacheKey + WebForms.GS + regex + WebForms.GS + replacement.replacingOccurrences(of: "\n", with: "$[ln];")) }
+	// Operator: +, -, *, /, %, //, **
+	public func setArithmeticSaveValue(_ cacheKey: String, _ operator_: String, _ value: String) { add("SM", cacheKey + WebForms.GS + operator_ + WebForms.GS + value) }
+	public func setArithmeticSaveValue(_ cacheKey: String, _ operator_: String, _ value: Int) { setArithmeticSaveValue(cacheKey, operator_, String(value)) }
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public func setTextOperationSaveValue(_ cacheKey: String, _ operation: String, _ value1: String, _ value2: String) { add("ST", cacheKey + WebForms.GS + operation + WebForms.GS + value1 + WebForms.GS + value2) }
+	public func setTextOperationSaveValue(_ cacheKey: String, _ operation: String, _ value1: Int, _ value2: Int) { setTextOperationSaveValue(cacheKey, operation, String(value1), String(value2)) }
 
     // Cache
     public func cacheId(_ inputPlace: String, _ key: String = ".") { add("@ci" + inputPlace, key) }
@@ -488,6 +513,14 @@ class WebForms {
     public func insertCacheValue(_ cacheKey: String, _ value: String) { add("CI", cacheKey + WebForms.GS + value.replacingOccurrences(of: "\n", with: "$[ln];")) }
     public func appendCacheValue(_ cacheKey: String, _ value: String) { add("CP", cacheKey + WebForms.GS + value.replacingOccurrences(of: "\n", with: "$[ln];")) }
     public func replaceCacheValue(_ cacheKey: String, _ searchValue: String, _ value: String) { add("CR", cacheKey + WebForms.GS + value.replacingOccurrences(of: "\n", with: "$[ln];") + WebForms.GS + searchValue.replacingOccurrences(of: "\n", with: "$[ln];")) }
+	// Is Regex Replace
+	public func setFormatCacheValue(_ cacheKey: String, _ regex: String, _ replacement: String) { add("CF", cacheKey + WebForms.GS + regex + WebForms.GS + replacement.replacingOccurrences(of: "\n", with: "$[ln];")) }
+	// Operator: +, -, *, /, %, //, **
+	public func setArithmeticCacheValue(_ cacheKey: String, _ operator_: String, _ value: String) { add("CM", cacheKey + WebForms.GS + operator_ + WebForms.GS + value) }
+	public func setArithmeticCacheValue(_ cacheKey: String, _ operator_: String, _ value: Int) { setArithmeticCacheValue(cacheKey, operator_, String(value)) }
+	// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+	public func setTextOperationCacheValue(_ cacheKey: String, _ operation: String, _ value1: String, _ value2: String) { add("CT", cacheKey + WebForms.GS + operation + WebForms.GS + value1 + WebForms.GS + value2) }
+	public func setTextOperationCacheValue(_ cacheKey: String, _ operation: String, _ value1: Int, _ value2: Int) { setTextOperationCacheValue(cacheKey, operation, String(value1), String(value2)) }
 
     // Call
     public func loadUrl(_ inputPlace: String, _ url: String) { add("lu" + inputPlace, url) }
@@ -544,18 +577,18 @@ class WebForms {
     public func replaceStartTag(_ inputPlace: String, _ value: String, _ newValue: String) { add("gt" + inputPlace, "s" + WebForms.GS + value + WebForms.GS + newValue) }
 
     // Pre Runner
-    public func assignDelay(_ miliSecond: Int, _ index: Int = -1) {
+    public func assignDelay(_ milliSecond: Int, _ index: Int = -1) {
         let currentLine = getLineByIndex(index)
         if currentLine.isEmpty {
             return
         }
         let parts = currentLine.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
-        let newName = ":" + String(miliSecond) + ")" + parts[0]
+        let newName = ":" + String(milliSecond) + ")" + parts[0]
         let newValue = parts.count > 1 ? parts[1] : ""
         updateLineByIndex(index, newName, newValue)
     }
 
-    public func assignDelayChange(_ miliSecond: Int, _ index: Int = -1) {
+    public func assignDelayChange(_ milliSecond: Int, _ index: Int = -1) {
         let currentLine = getLineByIndex(index)
         if currentLine.isEmpty {
             return
@@ -566,23 +599,23 @@ class WebForms {
             let closingBracket = currentName.firstIndex(of: ")")!
             currentName = String(currentName[currentName.index(after: closingBracket)...])
         }
-        let newName = ":" + String(miliSecond) + ")" + currentName
+        let newName = ":" + String(milliSecond) + ")" + currentName
         let newValue = parts.count > 1 ? parts[1] : ""
         updateLineByIndex(index, newName, newValue)
     }
 
-    public func assignInterval(_ miliSecond: Int, _ id: String? = nil, _ index: Int = -1) {
+    public func assignInterval(_ milliSecond: Int, _ id: String? = nil, _ index: Int = -1) {
         let currentLine = getLineByIndex(index)
         if currentLine.isEmpty {
             return
         }
         let parts = currentLine.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
-        let newName = "(" + String(miliSecond) + (!(id ?? "").isEmpty ? "|" + id! : "") + ")" + parts[0]
+        let newName = "(" + String(milliSecond) + (!(id ?? "").isEmpty ? "|" + id! : "") + ")" + parts[0]
         let newValue = parts.count > 1 ? parts[1] : ""
         updateLineByIndex(index, newName, newValue)
     }
 
-    public func assignIntervalChange(_ miliSecond: Int, _ id: String? = nil, _ index: Int = -1) {
+    public func assignIntervalChange(_ milliSecond: Int, _ id: String? = nil, _ index: Int = -1) {
         let currentLine = getLineByIndex(index)
         if currentLine.isEmpty {
             return
@@ -593,7 +626,7 @@ class WebForms {
             let closingBracket = currentName.firstIndex(of: ")")!
             currentName = String(currentName[currentName.index(after: closingBracket)...])
         }
-        let newName = "(" + String(miliSecond) + (!(id ?? "").isEmpty ? "|" + id! : "") + ")" + currentName
+        let newName = "(" + String(milliSecond) + (!(id ?? "").isEmpty ? "|" + id! : "") + ")" + currentName
         let newValue = parts.count > 1 ? parts[1] : ""
         updateLineByIndex(index, newName, newValue)
     }
@@ -632,9 +665,9 @@ class WebForms {
     public func startIndex() { startIndex("") }
     // This Index Is Automatically Run After Changing The Browser History (Back And Forward Buttons)
     public func startState() { startIndex("$") }
-    public func goTo(_ line: String, _ `repeat`: String) { add("&", line + WebForms.GS + `repeat`) }
-    public func goTo(_ line: Int, _ `repeat`: Int = 1) { goTo(String(line), String(`repeat`)) }
-    public func goTo(_ index: String, _ `repeat`: Int = 1) { add("&", "#" + index + WebForms.GS + String(`repeat`)) }
+    public func goTo(_ line: String, _ repeat_: String) { add("&", line + WebForms.GS + repeat_) }
+    public func goTo(_ line: Int, _ repeat_: Int = 1) { goTo(String(line), String(repeat_)) }
+    public func goTo(_ index: String, _ repeat_: Int = 1) { add("&", "#" + index + WebForms.GS + String(repeat_)) }
     
     // Start
     public func startTransientDOM(_ inputPlace: String) { add("td", inputPlace) }
@@ -763,18 +796,20 @@ class WebForms {
     // Key: Creates A Temporary Data In The Browser IndexedDB.
     // Key + "i" Creates A Temporary Data To Maintain The Loop Counter In The Browser IndexedDB.
     @discardableResult
-    public func forEach(_ path: String, _ `in`: String, _ key: String = ".") -> WebForms {
-        add("{fe", path + WebForms.GS + `in` + WebForms.GS + key)
+    public func forEach(_ path: String, _ in_: String, _ key: String = ".") -> WebForms {
+        add("{fe", path + WebForms.GS + in_ + WebForms.GS + key)
         return self
     }
-    public func `break`() { add(";") }
+    public func break_() { add(";") }
     @discardableResult
-    public func `else`() -> WebForms {
+    public func else_() -> WebForms {
         add("}e")
         return self
     }
     public func startBracket() { add("{") }
     public func endBracket() { add("}") }
+	
+	// High-Level Methods
     // Used Then In Condition And Loop Methods
     @discardableResult
     public func then(_ newForm: WebForms?) -> WebForms {
@@ -805,7 +840,7 @@ class WebForms {
     }
 
     @discardableResult
-    public func `repeat`(_ newForm: WebForms?, _ `repeat`: Int) -> WebForms {
+    public func repeat_(_ newForm: WebForms?, _ repeat_: Int) -> WebForms {
         guard let newForm = newForm else {
             return self
         }
@@ -815,12 +850,12 @@ class WebForms {
         }
         let startLine = bodyData.split(separator: "\n", omittingEmptySubsequences: false).count * -1
         appendForm(newForm)
-        goTo(startLine, `repeat` - 1)
+        goTo(startLine, repeat_ - 1)
         return self
     }
     
     @discardableResult
-    public func `repeat`(_ newForm: WebForms?, _ `repeat`: Int, _ index: String) -> WebForms {
+    public func repeat_(_ newForm: WebForms?, _ repeat_: Int, _ index: String) -> WebForms {
         guard let newForm = newForm else {
             return self
         }
@@ -838,36 +873,84 @@ class WebForms {
                     indexNumber += 1
                 }
             }
-            goTo(indexNumber, `repeat` - 1)
+            goTo(indexNumber, repeat_ - 1)
         } else {
-            goTo(index, `repeat` - 1)
+            goTo(index, repeat_ - 1)
         }
         return self
     }
 
     @discardableResult
-    public func `repeat`(_ configure: (WebForms) -> Void, _ `repeat`: Int) -> WebForms {
+    public func repeat_(_ configure: (WebForms) -> Void, _ repeat_: Int) -> WebForms {
         let newForm = WebForms()
         configure(newForm)
-        return self.`repeat`(newForm, `repeat`)
+        return self.repeat_(newForm, repeat_)
     }
     
     @discardableResult
-    public func `repeat`(_ configure: (WebForms) -> Void, _ `repeat`: Int, _ index: String) -> WebForms {
+    public func repeat_(_ configure: (WebForms) -> Void, _ repeat_: Int, _ index: String) -> WebForms {
         let newForm = WebForms()
         configure(newForm)
-        return self.`repeat`(newForm, `repeat`, index)
+        return self.repeat_(newForm, repeat_, index)
     }
+
+	@discardableResult
+	public func isole(_ newForm: WebForms?, _ inputPlace: String) -> WebForms {
+		guard let newForm = newForm else { return self }
+		let bodyData = newForm.getWebFormsData()
+		if bodyData.isEmpty { return self }
+		let form = WebForms()
+		form.startTransientDOM(inputPlace)
+		appendForm(form)
+		newForm.endTransientDOM()
+		appendForm(newForm)
+		return self
+	}
+
+	@discardableResult
+	public func isole(_ configure: (WebForms) -> Void, _ inputPlace: String) -> WebForms {
+		let newForm = WebForms()
+		configure(newForm)
+		return isole(newForm, inputPlace)
+	}
+
+	// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+	// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+	@discardableResult
+	public func render(_ newForm: WebForms?, _ inputPlace: String, _ key: String = "", _ permanent: Bool = false) -> WebForms {
+		guard let newForm = newForm else { return self }
+		let bodyData = newForm.getWebFormsData()
+		if bodyData.isEmpty { return self }
+		var key = key
+		if key.isEmpty { key = inputPlace }
+		let form = WebForms()
+		form.exist(permanent ? Fetch.cache(key) : Fetch.save(key))
+		form.rollback(inputPlace, key, permanent)
+		form.else_()
+		form.snapshot(inputPlace, key, permanent)
+		form.startTransientDOM(inputPlace)
+		appendForm(form)
+		newForm.endTransientDOM()
+		appendForm(newForm)
+		return self
+	}
+
+	@discardableResult
+	public func render(_ configure: (WebForms) -> Void, _ inputPlace: String, _ key: String = "", _ permanent: Bool = false) -> WebForms {
+		let newForm = WebForms()
+		configure(newForm)
+		return render(newForm, inputPlace, key, permanent)
+	}
 
     // Async
     // It Supports Brackets and Then
     @discardableResult
-    public func `async`() -> WebForms {
+    public func async_() -> WebForms {
         add("{(a)")
         return self
     }
-    public func delay(_ miliSecond: String) { add("De", miliSecond) }
-    public func delay(_ miliSecond: Int) { delay(String(miliSecond)) }
+    public func delay(_ milliSecond: String) { add("De", milliSecond) }
+    public func delay(_ milliSecond: Int) { delay(String(milliSecond)) }
 
     // Option
     public func changeOption(_ name: String, _ value: String) { add("co", name + WebForms.GS + value) }
@@ -1056,16 +1139,16 @@ class InputPlace {
     public static func child() -> String { "<>" }
     public static func child(_ index: Int) -> String { "<>" + String(index) }
     public static func allChild() -> String { "<>*" }
-    public static func `class`(_ `class`: String) -> String { "{" + `class` + "}" }
-    public static func `class`(_ `class`: String, _ index: Int) -> String { "{" + `class` + "}" + String(index) }
-    public static func allClasses(_ `class`: String) -> String { "{" + `class` + "}*" }
+    public static func class_(_ class_: String) -> String { "{" + class_ + "}" }
+    public static func class_(_ class_: String, _ index: Int) -> String { "{" + class_ + "}" + String(index) }
+    public static func allClasses(_ class_: String) -> String { "{" + class_ + "}*" }
     public static func attribute(_ name: String) -> String { "\"" + name + "\"" }
     public static func attribute(_ name: String, _ index: Int) -> String { "\"" + name + "\"" + String(index) }
     public static func allAttributes(_ name: String) -> String { "\"" + name + "\"*" }
     // Operator: '^', '$', '*', '~'
-    public static func attribute(_ name: String, _ value: String, _ `operator`: Character = "\0") -> String { "\"" + name + (`operator` != "\0" ? String(`operator`) : "") + "'" + value + "\"" }
-    public static func attribute(_ name: String, _ value: String, _ index: Int, _ `operator`: Character = "\0") -> String { "\"" + name + (`operator` != "\0" ? String(`operator`) : "") + "'" + value + "\"" + String(index) }
-    public static func allAttributes(_ name: String, _ value: String, _ `operator`: Character = "\0") -> String { "\"" + name + (`operator` != "\0" ? String(`operator`) : "") + "'" + value + "\"*" }
+    public static func attribute(_ name: String, _ value: String, _ operator_: Character = "\0") -> String { "\"" + name + (operator_ != "\0" ? String(operator_) : "") + "'" + value + "\"" }
+    public static func attribute(_ name: String, _ value: String, _ index: Int, _ operator_: Character = "\0") -> String { "\"" + name + (operator_ != "\0" ? String(operator_) : "") + "'" + value + "\"" + String(index) }
+    public static func allAttributes(_ name: String, _ value: String, _ operator_: Character = "\0") -> String { "\"" + name + (operator_ != "\0" ? String(operator_) : "") + "'" + value + "\"*" }
     public static func query(_ query: String) -> String { "*" + query.replacingOccurrences(of: "=", with: "$[eq];").replacingOccurrences(of: "|", with: "$[vb];").replacingOccurrences(of: "?", with: "$[qu];") }
     public static func queryAll(_ query: String) -> String { "[" + query.replacingOccurrences(of: "=", with: "$[eq];").replacingOccurrences(of: "|", with: "$[vb];").replacingOccurrences(of: "?", with: "$[qu];") }
 }
@@ -1105,7 +1188,7 @@ class Fetch {
     }
 
     // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-    public static func wasmMethod(_ wasmLanguage: String, _ wasmUrl: String, _ methodName: String, _ args: [Any]? = nil, _ key: String = ".") -> String {
+    public static func wasmMethod(_ wasmLanguage: String, _ wasmUrl: String, _ methodName: String, _ args: [Any]? = nil) -> String {
         var returnValue = "@wA" + wasmLanguage + RS + wasmUrl + RS + methodName
 
         if let args = args {
@@ -1142,7 +1225,7 @@ class Fetch {
         return returnValue
     }
 
-    // Data
+    // Date
     public static let dateYear = "@dy"
     // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1 
     public static let dateMonth = "@dm"
@@ -1178,8 +1261,9 @@ class Fetch {
     public static func getTextAlign(_ inputPlace: String) -> String { "@$T" + inputPlace }
     public static func getNodeLength(_ inputPlace: String) -> String { "@$L" + inputPlace }
     public static func getIsVisible(_ inputPlace: String) -> String { "@$V" + inputPlace }
+	public static func getTagHash(_ inputPlace: String) -> String { "@$H" + inputPlace }
 
-    // Save
+    // Save and Cache
     public static func hasHash(_ hash: String) -> String { "@HH" + hash }
     public static func cookie(_ key: String) -> String { "@co" + key }
     public static func save(_ key: String = ".") -> String { "@cs" + key }
@@ -1268,13 +1352,10 @@ class Fetch {
 }
 
 enum WasmLanguage {
-    // The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
     public static let c = "c"
     public static let cpp = "c"
     public static let rust = "rust"
     public static let cSharp = "csharp"
-    // .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-    public static let cSharpMediator = "csharp-m"
     public static let go = "go"
     public static let java = "java"
     public static let assemblyScript = "as"
@@ -1462,12 +1543,12 @@ extension String {
         return self + "|/"
     }
 
-    public func criteria(_ value: String) -> String {
-        if self.isEmpty {
-            return value
-        }
-        return self + "?" + value.replacingOccurrences(of: "|", with: "$[vb];").replacingOccurrences(of: "?", with: "$[qu];")
-    }
+	public func criteria(_ value: String) -> String {
+		if self.isEmpty {
+			return value
+		}
+		return self + "?" + value.replacingOccurrences(of: "|", with: "$[vb];").replacingOccurrences(of: "?", with: "$[qu];").replacingOccurrences(of: "=", with: "$[eq];")
+	}
 
     public func appendFetchReplace(_ searchValue: String, _ value: String) -> String {
         let FS = "\u{1C}"
