@@ -73,7 +73,7 @@ static void handle_form(struct mg_connection *c, struct mg_http_message *hm)
     // Build InputPlace selectors (each returns a heap-allocated string)
     char *ipForm = webforms_ip_tag("form");
     char *ipH3   = webforms_ip_tag("h3");
-    char *ipBtn  = webforms_ip_tag("btn_SetBodyValue");
+    char *ipBtn  = webforms_ip_name("btn_SetBodyValue");
 
     // _Generic dispatch: int -> webforms_set_font_size_int
     webforms_set_font_size(form, ipForm, fontSize);
