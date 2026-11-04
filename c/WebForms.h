@@ -1,5 +1,5 @@
-// WebForms.h 2.1 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
-// Compatible with WebFormsJS version 2.1
+// WebForms.h 2.2 - The Back-End Part of WebForms Core Technology, Owned by Elanat (https://elanat.net)
+// Compatible with WebFormsJS version 2.2
 
 #ifndef WEBFORMS_H
 #define WEBFORMS_H
@@ -705,6 +705,13 @@ static inline void webforms_set_checked_index_int(WebForms *self, const char *in
     webforms_set_checked_index_str(self, input_place, buf, checked);
 }
 
+static inline void webforms_set_custom_validity(WebForms *self, const char *input_place, const char *text)
+{
+    char *v = webforms_internal_str_replace_all(text, "\n", "$[ln];");
+    webforms_internal_add_prefixed(self, "cv", input_place, v);
+    free(v);
+}
+
 // ============================================================
 // Insert
 // Creates the Data only if it does not exist; otherwise, does nothing.
@@ -867,7 +874,7 @@ static inline void webforms_delete_parent(WebForms *self, const char *input_plac
 }
 
 // ============================================================
-// Tag
+// Tag Transformation
 // ============================================================
 
 static inline void webforms_swap_tag(WebForms *self, const char *input_place, const char *output_place)
@@ -875,12 +882,12 @@ static inline void webforms_swap_tag(WebForms *self, const char *input_place, co
     webforms_internal_add_prefixed(self, "sp", input_place, output_place);
 }
 
-static inline void webforms_set_reflection(WebForms *self, const char *input_place, const char *tag)
+static inline void webforms_set_reflect(WebForms *self, const char *input_place, const char *tag)
 {
     webforms_internal_add_prefixed(self, "sR", input_place, tag);
 }
 
-static inline void webforms_set_reflection_by_output_place(WebForms *self, const char *input_place, const char *output_place)
+static inline void webforms_set_reflect_by_output_place(WebForms *self, const char *input_place, const char *output_place)
 {
     webforms_internal_add_prefixed(self, "iR", input_place, output_place);
 }
@@ -893,6 +900,28 @@ static inline void webforms_set_morph(WebForms *self, const char *input_place, c
 static inline void webforms_set_morph_by_output_place(WebForms *self, const char *input_place, const char *output_place)
 {
     webforms_internal_add_prefixed(self, "iM", input_place, output_place);
+}
+
+// The Snapshot and Rollback Mechanism is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+// InputPlace: Only One Tag 
+static inline void webforms_snapshot(WebForms *self, const char *input_place, const char *key, bool permanent)
+{
+    bool has_key = (key && key[0] != '\0');
+    const char *base = has_key ? key : input_place;
+    const char *parts[3] = { base, permanent ? WEBFORMS_GS_STR : NULL, permanent ? "1" : NULL };
+    char *v = webforms_internal_join(parts, 3);
+    webforms_internal_add_prefixed(self, "rS", input_place, v);
+    free(v);
+}
+
+static inline void webforms_rollback(WebForms *self, const char *input_place, const char *key, bool permanent)
+{
+    bool has_key = (key && key[0] != '\0');
+    const char *base = has_key ? key : input_place;
+    const char *parts[3] = { base, permanent ? WEBFORMS_GS_STR : NULL, permanent ? "1" : NULL };
+    char *v = webforms_internal_join(parts, 3);
+    webforms_internal_add_prefixed(self, "rB", input_place, v);
+    free(v);
 }
 
 // ============================================================
@@ -1973,6 +2002,21 @@ static inline void webforms_create_debugger(WebForms *self, bool pause)
     webforms_internal_add_nv(self, "Dc", pause ? "1" : "0");
 }
 
+static inline void webforms_try(WebForms *self)
+{
+    webforms_internal_add_n(self, "tr");
+}
+
+static inline void webforms_catch(WebForms *self)
+{
+    webforms_internal_add_n(self, "ca");
+}
+
+static inline void webforms_comment(WebForms *self, const char *text)
+{
+    webforms_internal_add_nv(self, "//", text);
+}
+
 // ============================================================
 // Service Worker
 // To Use Service Worker, You Need To Add The Elanat Dedicated Module (service-worker.js) On The Client Side
@@ -2155,6 +2199,18 @@ static inline void webforms_delete_state(WebForms *self, const char *path)
 static inline void webforms_delete_all_state(WebForms *self)
 {
     webforms_internal_add_nv(self, "DS", "*");
+}
+
+static inline void webforms_lock_queue_str(WebForms *self, const char *millisecond)
+{
+    webforms_internal_add_nv(self, "lq", millisecond);
+}
+
+static inline void webforms_lock_queue_int(WebForms *self, int millisecond)
+{
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", millisecond);
+    webforms_lock_queue_str(self, buf);
 }
 
 // ============================================================
@@ -2351,6 +2407,51 @@ static inline void webforms_replace_save_value(WebForms *self, const char *cache
     free(sv);
 }
 
+// Is Regex Replace
+static inline void webforms_set_format_save_value(WebForms *self, const char *cache_key, const char *regex, const char *replacement)
+{
+    char *v = webforms_internal_str_replace_all(replacement, "\n", "$[ln];");
+    const char *parts[5] = { cache_key, WEBFORMS_GS_STR, regex, WEBFORMS_GS_STR, v };
+    char *joined = webforms_internal_join(parts, 5);
+    webforms_internal_add_nv(self, "SF", joined);
+    free(joined);
+    free(v);
+}
+
+// Operator: +, -, *, /, %, //, **
+static inline void webforms_set_arithmetic_save_value_str(WebForms *self, const char *cache_key, const char *operator_, const char *value)
+{
+    const char *parts[5] = { cache_key, WEBFORMS_GS_STR, operator_, WEBFORMS_GS_STR, value };
+    char *joined = webforms_internal_join(parts, 5);
+    webforms_internal_add_nv(self, "SM", joined);
+    free(joined);
+}
+
+static inline void webforms_set_arithmetic_save_value_int(WebForms *self, const char *cache_key, const char *operator_, int value)
+{
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", value);
+    webforms_set_arithmetic_save_value_str(self, cache_key, operator_, buf);
+}
+
+// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+static inline void webforms_set_text_operation_save_value_str(WebForms *self, const char *cache_key, const char *operation, const char *value1, const char *value2)
+{
+    const char *parts[7] = { cache_key, WEBFORMS_GS_STR, operation, WEBFORMS_GS_STR, value1, WEBFORMS_GS_STR, value2 };
+    char *joined = webforms_internal_join(parts, 7);
+    webforms_internal_add_nv(self, "ST", joined);
+    free(joined);
+}
+
+static inline void webforms_set_text_operation_save_value_int(WebForms *self, const char *cache_key, const char *operation, int value1, int value2)
+{
+    char buf1[32];
+    char buf2[32];
+    snprintf(buf1, sizeof(buf1), "%d", value1);
+    snprintf(buf2, sizeof(buf2), "%d", value2);
+    webforms_set_text_operation_save_value_str(self, cache_key, operation, buf1, buf2);
+}
+
 // ============================================================
 // Cache
 // ============================================================
@@ -2535,6 +2636,51 @@ static inline void webforms_replace_cache_value(WebForms *self, const char *cach
     free(joined);
     free(v);
     free(sv);
+}
+
+// Is Regex Replace
+static inline void webforms_set_format_cache_value(WebForms *self, const char *cache_key, const char *regex, const char *replacement)
+{
+    char *v = webforms_internal_str_replace_all(replacement, "\n", "$[ln];");
+    const char *parts[5] = { cache_key, WEBFORMS_GS_STR, regex, WEBFORMS_GS_STR, v };
+    char *joined = webforms_internal_join(parts, 5);
+    webforms_internal_add_nv(self, "CF", joined);
+    free(joined);
+    free(v);
+}
+
+// Operator: +, -, *, /, %, //, **
+static inline void webforms_set_arithmetic_cache_value_str(WebForms *self, const char *cache_key, const char *operator_, const char *value)
+{
+    const char *parts[5] = { cache_key, WEBFORMS_GS_STR, operator_, WEBFORMS_GS_STR, value };
+    char *joined = webforms_internal_join(parts, 5);
+    webforms_internal_add_nv(self, "CM", joined);
+    free(joined);
+}
+
+static inline void webforms_set_arithmetic_cache_value_int(WebForms *self, const char *cache_key, const char *operator_, int value)
+{
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", value);
+    webforms_set_arithmetic_cache_value_str(self, cache_key, operator_, buf);
+}
+
+// Operation: textafter, textafterlast, textbefore, textbeforelast, substring, remove
+static inline void webforms_set_text_operation_cache_value_str(WebForms *self, const char *cache_key, const char *operation, const char *value1, const char *value2)
+{
+    const char *parts[7] = { cache_key, WEBFORMS_GS_STR, operation, WEBFORMS_GS_STR, value1, WEBFORMS_GS_STR, value2 };
+    char *joined = webforms_internal_join(parts, 7);
+    webforms_internal_add_nv(self, "CT", joined);
+    free(joined);
+}
+
+static inline void webforms_set_text_operation_cache_value_int(WebForms *self, const char *cache_key, const char *operation, int value1, int value2)
+{
+    char buf1[32];
+    char buf2[32];
+    snprintf(buf1, sizeof(buf1), "%d", value1);
+    snprintf(buf2, sizeof(buf2), "%d", value2);
+    webforms_set_text_operation_cache_value_str(self, cache_key, operation, buf1, buf2);
 }
 
 // ============================================================
@@ -2802,7 +2948,7 @@ static inline void webforms_replace_start_tag(WebForms *self, const char *input_
 // Pre Runner
 // ============================================================
 
-static inline void webforms_assign_delay(WebForms *self, int mili_second, int index)
+static inline void webforms_assign_delay(WebForms *self, int milli_second, int index)
 {
     char *current_line = webforms_get_line_by_index(self, index);
     if (!current_line || current_line[0] == '\0') {
@@ -2823,7 +2969,7 @@ static inline void webforms_assign_delay(WebForms *self, int mili_second, int in
         value_part = webforms_internal_strdup("");
     }
     char prefix[32];
-    snprintf(prefix, sizeof(prefix), ":%d)", mili_second);
+    snprintf(prefix, sizeof(prefix), ":%d)", milli_second);
     const char *parts[3] = { prefix, name_part, "" };
     char *new_name = webforms_internal_join(parts, 3);
     webforms_update_line_by_index(self, index, new_name, value_part);
@@ -2833,7 +2979,7 @@ static inline void webforms_assign_delay(WebForms *self, int mili_second, int in
     free(new_name);
 }
 
-static inline void webforms_assign_delay_change(WebForms *self, int mili_second, int index)
+static inline void webforms_assign_delay_change(WebForms *self, int milli_second, int index)
 {
     char *current_line = webforms_get_line_by_index(self, index);
     if (!current_line || current_line[0] == '\0') {
@@ -2860,7 +3006,7 @@ static inline void webforms_assign_delay_change(WebForms *self, int mili_second,
         name_part = trimmed;
     }
     char prefix[32];
-    snprintf(prefix, sizeof(prefix), ":%d)", mili_second);
+    snprintf(prefix, sizeof(prefix), ":%d)", milli_second);
     const char *parts[3] = { prefix, name_part, "" };
     char *new_name = webforms_internal_join(parts, 3);
     webforms_update_line_by_index(self, index, new_name, value_part);
@@ -2870,7 +3016,7 @@ static inline void webforms_assign_delay_change(WebForms *self, int mili_second,
     free(new_name);
 }
 
-static inline void webforms_assign_interval(WebForms *self, int mili_second, const char *id, int index)
+static inline void webforms_assign_interval(WebForms *self, int milli_second, const char *id, int index)
 {
     char *current_line = webforms_get_line_by_index(self, index);
     if (!current_line || current_line[0] == '\0') {
@@ -2892,9 +3038,9 @@ static inline void webforms_assign_interval(WebForms *self, int mili_second, con
     }
     char buf[64];
     if (id && id[0] != '\0') {
-        snprintf(buf, sizeof(buf), "(%d|%s)", mili_second, id);
+        snprintf(buf, sizeof(buf), "(%d|%s)", milli_second, id);
     } else {
-        snprintf(buf, sizeof(buf), "(%d)", mili_second);
+        snprintf(buf, sizeof(buf), "(%d)", milli_second);
     }
     const char *parts[3] = { buf, name_part, "" };
     char *new_name = webforms_internal_join(parts, 3);
@@ -2905,7 +3051,7 @@ static inline void webforms_assign_interval(WebForms *self, int mili_second, con
     free(new_name);
 }
 
-static inline void webforms_assign_interval_change(WebForms *self, int mili_second, const char *id, int index)
+static inline void webforms_assign_interval_change(WebForms *self, int milli_second, const char *id, int index)
 {
     char *current_line = webforms_get_line_by_index(self, index);
     if (!current_line || current_line[0] == '\0') {
@@ -2933,9 +3079,9 @@ static inline void webforms_assign_interval_change(WebForms *self, int mili_seco
     }
     char buf[64];
     if (id && id[0] != '\0') {
-        snprintf(buf, sizeof(buf), "(%d|%s)", mili_second, id);
+        snprintf(buf, sizeof(buf), "(%d|%s)", milli_second, id);
     } else {
-        snprintf(buf, sizeof(buf), "(%d)", mili_second);
+        snprintf(buf, sizeof(buf), "(%d)", milli_second);
     }
     const char *parts[3] = { buf, name_part, "" };
     char *new_name = webforms_internal_join(parts, 3);
@@ -3482,6 +3628,10 @@ static inline void webforms_end_bracket(WebForms *self)
     webforms_internal_add_n(self, "}");
 }
 
+// ============================================================
+// High-Level Methods
+// ============================================================
+
 // Used Then In Condition And Loop Methods
 static inline WebForms *webforms_then(WebForms *self, WebForms *new_form)
 {
@@ -3515,6 +3665,13 @@ static inline WebForms *webforms_repeat(WebForms *self, WebForms *new_form, int 
     return self;
 }
 
+static inline WebForms *webforms_repeat_configure(WebForms *self, void (*configure)(WebForms *), int repeat)
+{
+    WebForms *new_form = webforms_create();
+    configure(new_form);
+    return webforms_repeat(self, new_form, repeat);
+}
+
 static inline WebForms *webforms_repeat_index(WebForms *self, WebForms *new_form, int repeat, const char *index)
 {
     if (!new_form)
@@ -3540,18 +3697,95 @@ static inline WebForms *webforms_repeat_index(WebForms *self, WebForms *new_form
             webforms_internal_free_lines(lines, count);
             free(self_data);
         }
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%d", index_number);
-        webforms_go_to_str(self, buf, "0");
-        char rb[32];
-        snprintf(rb, sizeof(rb), "%d", repeat - 1);
-        int idx = (int)self->length;
-        (void)idx;
         webforms_go_to_int(self, index_number, repeat - 1);
     } else {
         webforms_go_to_index_str(self, index, repeat - 1);
     }
     return self;
+}
+
+static inline WebForms *webforms_repeat_index_configure(WebForms *self, void (*configure)(WebForms *), int repeat, const char *index)
+{
+    WebForms *new_form = webforms_create();
+    configure(new_form);
+    return webforms_repeat_index(self, new_form, repeat, index);
+}
+
+static inline WebForms *webforms_isole(WebForms *self, WebForms *new_form, const char *input_place)
+{
+    if (!new_form)
+        return self;
+
+    char *body_data = webforms_get_web_forms_data(new_form);
+    if (!body_data || body_data[0] == '\0') {
+        if (body_data) free(body_data);
+        return self;
+    }
+    free(body_data);
+
+    WebForms *form = webforms_create();
+    webforms_start_transient_dom(form, input_place);
+
+    webforms_append_form(self, form);
+    webforms_end_transient_dom(new_form);
+    webforms_append_form(self, new_form);
+
+    return self;
+}
+
+static inline WebForms *webforms_isole_configure(WebForms *self, void (*configure)(WebForms *), const char *input_place)
+{
+    WebForms *new_form = webforms_create();
+    configure(new_form);
+    return webforms_isole(self, new_form, input_place);
+}
+
+// Forward declarations
+static inline char *webforms_fetch_save(const char *key);
+static inline char *webforms_fetch_cache(const char *key);
+
+// The Render Method is Sensitive to DOM Changes; It is Recommended to Assign a Stable ID to the Selected Element.
+// This Method Utilizes the Transient DOM; Therefore, When Selecting InputPlaces, You Must Consider the Root of the Selected InputPlace Within the Method.
+static inline WebForms *webforms_render(WebForms *self, WebForms *new_form, const char *input_place, const char *key, bool permanent)
+{
+    if (!new_form)
+        return self;
+
+    char *body_data = webforms_get_web_forms_data(new_form);
+    if (!body_data || body_data[0] == '\0') {
+        if (body_data) free(body_data);
+        return self;
+    }
+    free(body_data);
+
+    if (!key || key[0] == '\0')
+        key = input_place;
+
+    WebForms *form = webforms_create();
+
+    // Note: webforms_fetch_cache/save assumed to return non-owned const char *.
+    // If they return heap-allocated memory, capture in char * and free() after webforms_exist.
+	char *fetch_expr = permanent ? webforms_fetch_cache(key) : webforms_fetch_save(key);
+	webforms_exist(form, fetch_expr, 0);
+	free(fetch_expr);
+		webforms_rollback(form, input_place, key, permanent);
+	webforms_else(form);
+		webforms_snapshot(form, input_place, key, permanent);
+
+    webforms_start_transient_dom(form, input_place);
+
+    webforms_append_form(self, form);
+    webforms_end_transient_dom(new_form);
+    webforms_append_form(self, new_form);
+
+    return self;
+}
+
+static inline WebForms *webforms_render_configure(WebForms *self, void (*configure)(WebForms *), const char *input_place, const char *key, bool permanent)
+{
+    WebForms *new_form = webforms_create();
+    configure(new_form);
+    return webforms_render(self, new_form, input_place, key, permanent);
 }
 
 // ============================================================
@@ -3565,15 +3799,15 @@ static inline WebForms *webforms_async(WebForms *self)
     return self;
 }
 
-static inline void webforms_delay_str(WebForms *self, const char *mili_second)
+static inline void webforms_delay_str(WebForms *self, const char *milli_second)
 {
-    webforms_internal_add_nv(self, "De", mili_second);
+    webforms_internal_add_nv(self, "De", milli_second);
 }
 
-static inline void webforms_delay_int(WebForms *self, int mili_second)
+static inline void webforms_delay_int(WebForms *self, int milli_second)
 {
     char buf[32];
-    snprintf(buf, sizeof(buf), "%d", mili_second);
+    snprintf(buf, sizeof(buf), "%d", milli_second);
     webforms_delay_str(self, buf);
 }
 
@@ -3690,7 +3924,7 @@ static inline void webforms_update_ini(WebForms *self, const char *key, const ch
     free(v);
 }
 
-static inline void webforms_update_tex_line_str(WebForms *self, const char *key, const char *line, const char *text)
+static inline void webforms_update_text_line_str(WebForms *self, const char *key, const char *line, const char *text)
 {
     const char *parts[7] = { key, WEBFORMS_GS_STR, "t", WEBFORMS_GS_STR, text, WEBFORMS_GS_STR, line };
     char *v = webforms_internal_join(parts, 7);
@@ -3698,11 +3932,11 @@ static inline void webforms_update_tex_line_str(WebForms *self, const char *key,
     free(v);
 }
 
-static inline void webforms_update_tex_line_int(WebForms *self, const char *key, int line, const char *text)
+static inline void webforms_update_text_line_int(WebForms *self, const char *key, int line, const char *text)
 {
     char buf[32];
     snprintf(buf, sizeof(buf), "%d", line);
-    webforms_update_tex_line_str(self, key, buf, text);
+    webforms_update_text_line_str(self, key, buf, text);
 }
 
 static inline void webforms_update_variable(WebForms *self, const char *key, const char *value)
@@ -4317,9 +4551,8 @@ static inline char *webforms_fetch_module_method(const char *method_name, const 
 }
 
 // MethodName: The Method Name May Need to Include the Class Name, Separated by a Period. Example: MyClassName.MyMethodName
-static inline char *webforms_fetch_wasm_method(const char *wasm_language, const char *wasm_url, const char *method_name, const char **args, size_t args_count, const char *key)
+static inline char *webforms_fetch_wasm_method(const char *wasm_language, const char *wasm_url, const char *method_name, const char **args, size_t args_count)
 {
-    (void)key;
     const char *base_parts[6] = { "@wA", wasm_language, WEBFORMS_RS_STR, wasm_url, WEBFORMS_RS_STR, method_name };
     char *base = webforms_internal_join(base_parts, 6);
     if (args && args_count > 0) {
@@ -4445,7 +4678,7 @@ static inline char *webforms_fetch_math(const char *method_name, const char **ar
     return base;
 }
 
-// Data
+// Date
 #define WEBFORMS_FETCH_DATE_YEAR "@dy"
 // Month In JavaScript Is Start From Index 0, Month In WebForms Core Is Start From Index 1
 #define WEBFORMS_FETCH_DATE_MONTH "@dm"
@@ -4581,7 +4814,13 @@ static inline char *webforms_fetch_get_is_visible(const char *input_place)
     return webforms_internal_join(parts, 2);
 }
 
-// Save
+static inline char *webforms_fetch_get_tag_hash(const char *input_place)
+{
+    const char *parts[2] = { "@$H", input_place };
+    return webforms_internal_join(parts, 2);
+}
+
+// Save and Cache
 static inline char *webforms_fetch_has_hash(const char *hash)
 {
     const char *parts[2] = { "@HH", hash };
@@ -4816,15 +5055,12 @@ static inline char *webforms_fetch_hash_segment(int index)
 
 // ============================================================
 // WasmLanguage
-// The Suffix "Mediator" Means You Must Call the JavaScript Interface. In Other Cases, the WASM File Should Be Called Directly.
 // ============================================================
 
 #define WEBFORMS_WASM_LANGUAGE_C "c"
 #define WEBFORMS_WASM_LANGUAGE_CPP "c"
 #define WEBFORMS_WASM_LANGUAGE_RUST "rust"
 #define WEBFORMS_WASM_LANGUAGE_CSHARP "csharp"
-// .NET WebCIL Container. The "dotnet.js" File Should Be Invoked.
-#define WEBFORMS_WASM_LANGUAGE_CSHARP_MEDIATOR "csharp-m"
 #define WEBFORMS_WASM_LANGUAGE_GO "go"
 #define WEBFORMS_WASM_LANGUAGE_JAVA "java"
 #define WEBFORMS_WASM_LANGUAGE_ASSEMBLY_SCRIPT "as"
@@ -5029,9 +5265,11 @@ static inline char *webforms_ext_criteria(const char *text, const char *value)
     char *v1 = webforms_internal_str_replace_all(value, "|", "$[vb];");
     char *v2 = webforms_internal_str_replace_all(v1, "?", "$[qu];");
     free(v1);
-    const char *parts[3] = { text, "?", v2 };
-    char *r = webforms_internal_join(parts, 3);
+    char *v3 = webforms_internal_str_replace_all(v2, "=", "$[eq];");
     free(v2);
+    const char *parts[3] = { text, "?", v3 };
+    char *r = webforms_internal_join(parts, 3);
+    free(v3);
     return r;
 }
 
@@ -5215,9 +5453,9 @@ static inline char *webforms_ext_to_js_return_object(const char *text)
     default: webforms_add_text_line_str \
 )(self, k, l, t)
 
-#define webforms_update_tex_line(self, k, l, t) _Generic((l), \
-    int: webforms_update_tex_line_int, \
-    default: webforms_update_tex_line_str \
+#define webforms_update_text_line(self, k, l, t) _Generic((l), \
+    int: webforms_update_text_line_int, \
+    default: webforms_update_text_line_str \
 )(self, k, l, t)
 
 #define webforms_delete_text_line(self, k, l) _Generic((l), \
@@ -5255,12 +5493,40 @@ static inline char *webforms_ext_to_js_return_object(const char *text)
     default: webforms_call_comment_back \
 )(self, i, ip, u)
 
+#define WEBFORMS_MESSAGE_1(self, t) webforms_message(self, t, "", "")
+#define WEBFORMS_MESSAGE_2(self, t, a) \
+    _Generic((a), int: webforms_message_duration_int, default: webforms_message_str2)(self, t, a)
+#define WEBFORMS_MESSAGE_3(self, t, a, b) \
+    _Generic((b), int: webforms_message_type_duration_int, default: webforms_message)(self, t, a, b)
+
+#define WEBFORMS_MESSAGE_ARG4(_1, _2, _3, _4, NAME, ...) NAME
+
 #define webforms_message(self, t, ...) \
-    WEBFORMS_MESSAGE_DISPATCH(self, t, __VA_ARGS__)
+    WEBFORMS_MESSAGE_ARG4(__VA_ARGS__, WEBFORMS_MESSAGE_3, WEBFORMS_MESSAGE_2, WEBFORMS_MESSAGE_1, WEBFORMS_MESSAGE_1)(self, t, __VA_ARGS__)
 
-#define WEBFORMS_MESSAGE_ARG3(_1, _2, _3, NAME, ...) NAME
+#define webforms_lock_queue(self, m) _Generic((m), \
+    int: webforms_lock_queue_int, \
+    default: webforms_lock_queue_str \
+)(self, m)
 
-#define WEBFORMS_MESSAGE_DISPATCH(self, t, ...) \
-    WEBFORMS_MESSAGE_ARG3(__VA_ARGS__, webforms_message_type_duration_int, webforms_message_duration_int, webforms_message)(self, t, __VA_ARGS__)
+#define webforms_set_arithmetic_save_value(self, k, op, v) _Generic((v), \
+    int: webforms_set_arithmetic_save_value_int, \
+    default: webforms_set_arithmetic_save_value_str \
+)(self, k, op, v)
+
+#define webforms_set_text_operation_save_value(self, k, op, v1, v2) _Generic((v1), \
+    int: webforms_set_text_operation_save_value_int, \
+    default: webforms_set_text_operation_save_value_str \
+)(self, k, op, v1, v2)
+
+#define webforms_set_arithmetic_cache_value(self, k, op, v) _Generic((v), \
+    int: webforms_set_arithmetic_cache_value_int, \
+    default: webforms_set_arithmetic_cache_value_str \
+)(self, k, op, v)
+
+#define webforms_set_text_operation_cache_value(self, k, op, v1, v2) _Generic((v1), \
+    int: webforms_set_text_operation_cache_value_int, \
+    default: webforms_set_text_operation_cache_value_str \
+)(self, k, op, v1, v2)
 
 #endif // WEBFORMS_H
